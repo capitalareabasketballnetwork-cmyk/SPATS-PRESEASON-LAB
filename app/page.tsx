@@ -5,7 +5,7 @@ import {fetchTeams,rank,type Team,type Weights} from '../lib/data';
 type Submission={id:string;session_code:string;nickname:string;talent:number;performance:number;continuity:number};
 type Vote={submission_id:string};
 export default function Home(){
-const [teams,setTeams]=useState<Team[]>([]),[error,setError]=useState(''),[tab,setTab]=useState('builder');
+const [teams,setTeams]=useState<Team[]>([]),[error,setError]=useState(''),[tab,setTab]=useState('club');
 const [talent,setTalent]=useState(75),[performance,setPerformance]=useState(15),[nickname,setNickname]=useState(''),[code,setCode]=useState(''),[join,setJoin]=useState('');
 const [submissions,setSubmissions]=useState<Submission[]>([]),[votes,setVotes]=useState<Vote[]>([]),[message,setMessage]=useState(''),[showAll,setShowAll]=useState(false);
 const continuity=100-talent-performance,weights:Weights={talent,performance,continuity};
@@ -17,9 +17,9 @@ const create=async()=>{if(!db){setMessage('Add Supabase environment variables to
 const enter=async()=>{if(!db){setMessage('Supabase is not configured.');return}const c=join.trim().toUpperCase();const {data,error}=await db.from('sessions').select('code').eq('code',c).maybeSingle();if(error||!data)setMessage('Session not found. Check the code.');else{setCode(c);setMessage('Joined session '+c)}};
 const submit=async()=>{if(!db||!code)return;if(!nickname.trim()){setMessage('Enter your nickname first.');return}const {error}=await db.from('submissions').upsert({session_code:code,member_id:memberId(),nickname:nickname.trim(),...weights},{onConflict:'session_code,member_id'});setMessage(error?error.message:'Your model has been submitted!')};
 const vote=async(id:string)=>{if(!db||!code)return;const {error}=await db.from('votes').upsert({session_code:code,voter_id:memberId(),submission_id:id},{onConflict:'session_code,voter_id'});setMessage(error?error.message:'Vote recorded!')};
-return <main><header><div className="brand"><span className="logo">S</span><div><strong>SPATS</strong><small>PRESEASON MODEL LAB</small></div></div><span className="season">2026–27 · NCAA D-I</span></header>
-<section className="hero"><div className="eyebrow">SPORTS ANALYTICS AT WMU</div><h1>Build the rankings.<br/><em>Shape the season.</em></h1><p>Explore real SPATS roster ratings, design your own formula, and vote on the club's model.</p><div className="chips"><span>{teams.length} teams with complete experimental inputs</span><span>Individual + club models</span><span>Experimental projections</span></div></section>
-<nav>{[['builder','Model Builder'],['research','Research'],['club','Club Session']].map(([id,label])=><button className={tab===id?'active':''} key={id} onClick={()=>setTab(id)}>{label}</button>)}</nav>
+return <main><header><div className="brand"><span className="logo">S</span><div><strong>SPATS</strong><small>PRESEASON RANKINGS</small></div></div><span className="season">2026–27 · NCAA D-I</span></header>
+<section className="hero"><div className="eyebrow">SPORTS ANALYTICS AT WMU</div><h1>Your rankings.<br/><em>Your call.</em></h1><p>Use SPATS data to guide your thinking, then build and submit your own preseason Top 25.</p><div className="chips"><span>{teams.length} teams with complete experimental inputs</span><span>Individual + club models</span><span>Experimental projections</span></div></section>
+<nav>{[['club','Club Voting LIVE'],['builder','Lab'],['research','Research']].map(([id,label])=><button className={tab===id?'active':''} key={id} onClick={()=>setTab(id)}>{label}</button>)}</nav>
 {error&&<div className="alert">Data error: {error}</div>}
 {tab==='builder'&&<div className="columns"><section className="panel"><div className="eyebrow">01 / BUILD YOUR MODEL</div><h2>Choose your weights</h2><p>Each input uses a 0–100 scale. Continuity is currently a neutral placeholder (50) for every team, not a calculated roster metric.</p>
 {[['Roster talent',talent,setTalent,100-performance],['Previous win percentage',performance,setPerformance,100-talent]].map(([label,value,set,max])=><div className="control" key={label as string}><div className="between"><b>{label as string}</b><strong>{value as number}%</strong></div><input type="range" min="0" max={max as number} step="5" value={value as number} onChange={e=>(set as (n:number)=>void)(Number(e.target.value))}/></div>)}
