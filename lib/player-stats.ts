@@ -26,7 +26,7 @@ function extract(source:unknown,season:number):PlayerStats|null{
  return null;
 }
 export async function getPlayerStats(id:string):Promise<PlayerStats|null>{
- if(!/^\\d{1,12}$/.test(id))return null;
+ if(!/^\d{1,12}$/.test(id))return null;
  for(const season of [2026,2025,2024]){
   const address=urlBase+id+'/stats?season='+season+'&seasontype=2';
   try{const response=await fetch(address,{next:{revalidate:86400},signal:AbortSignal.timeout(7000)});if(!response.ok)continue;const parsed=extract(await response.json(),season);if(parsed)return parsed}catch{}
