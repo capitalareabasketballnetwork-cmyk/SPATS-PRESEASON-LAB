@@ -49,7 +49,17 @@ const methods=[
 ];
 const externalMethods=['ap','kenpom','bpi','torvik'];
 const rankingKey=(v:string)=>v.toLowerCase().normalize('NFKD').replace(/[’']/g,'').replace(/&/g,'and').replace(/[^a-z0-9 ]+/g,' ').replace(/\\s+/g,' ').trim();
-const nameOverrides:Record<string,string>={'uconn':'connecticut','iowa st':'iowa state','michigan st':'michigan state','ohio st':'ohio state','oklahoma st':'oklahoma state','nc state':'north carolina state','n c state':'north carolina state','n c state wolfpack':'north carolina state','miami fl':'miami','saint marys':'saint marys','st johns':'st johns','utah st':'utah state','mississippi':'ole miss','mississippi st':'mississippi state','florida st':'florida state','west virginia':'west virginia'};
+const nameOverrides:Record<string,string>={
+'uconn':'uconn huskies','connecticut':'uconn huskies','duke':'duke blue devils',
+'michigan':'michigan wolverines','illinois':'illinois fighting illini','houston':'houston cougars','florida':'florida gators',
+'tennessee':'tennessee volunteers','arkansas':'arkansas razorbacks','iowa':'iowa hawkeyes','alabama':'alabama crimson tide',
+'virginia':'virginia cavaliers','kansas':'kansas jayhawks','texas':'texas longhorns','miami fl':'miami hurricanes',
+'iowa st':'iowa state cyclones','michigan st':'michigan state spartans','ohio st':'ohio state buckeyes',
+'oklahoma st':'oklahoma state cowboys','nc state':'nc state wolfpack','n c state':'nc state wolfpack',
+'utah st':'utah state aggies','florida st':'florida state seminoles','mississippi st':'mississippi state bulldogs',
+'texas a m':'texas a m aggies','saint marys':'saint marys gaels','north carolina':'north carolina tar heels',
+'st johns':'st johns red storm','mississippi':'ole miss rebels','arizona st':'arizona state sun devils',
+'virginia tech':'virginia tech hokies','west virginia':'west virginia mountaineers'};
 const matchRankedTeam=(label:string)=>{const key=rankingKey(label);const candidate=nameOverrides[key]||key;const matches=teams.filter(t=>{const n=rankingKey(t.name);return n===candidate||n.startsWith(candidate+' ')});return matches.length===1?matches[0]?.id:null};
 const externalItems=(id:string)=>{const data=publishedRankings[id as keyof typeof publishedRankings];if(!data||!('teams' in data))return [] as {rank:number;team:string}[];return data.teams};
 const applyPublished=(id:string)=>{const ranked=externalItems(id);const matched=ranked.map(p=>({rank:p.rank,name:p.team,id:matchRankedTeam(p.team)}));const first=matched.filter(p=>p.id).slice(0,25).map(p=>p.id as string);setBallot([...new Set(first)]);const misses=matched.slice(0,25).filter(p=>!p.id);setMessage(misses.length?'Imported '+first.length+' teams. Unmatched: '+misses.map(p=>p.name).join(', ')+'. Add replacements manually.':'Imported '+first.length+' ranked teams. Edit your Top 25 before submitting.')};
