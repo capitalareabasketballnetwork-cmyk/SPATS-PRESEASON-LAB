@@ -98,3 +98,9 @@
 .results-board-heading>div{min-width:0}
 .results-board-heading .export-results-button{flex:none;width:auto;padding:7px 11px;margin:0;font-size:12px;line-height:1.2;white-space:nowrap}
 @media(max-width:550px){.results-board-heading .export-results-button{padding:6px 8px;font-size:11px}}
+
+/* Ballot movement: green up, red down. */
+.rank-buttons .rank-up{background:#126943;border-color:#2ca46c;color:#fff}
+.rank-buttons .rank-down{background:#a82f37;border-color:#e05b64;color:#fff}
+.rank-buttons .rank-up:hover:not(:disabled){background:#168254}
+.rank-buttons .rank-down:hover:not(:disabled){background:#c83c46}
