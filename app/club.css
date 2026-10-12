@@ -92,3 +92,9 @@
  .live-results-page .results-board-panel{height:calc(100dvh - 92px);min-height:350px;display:flex;flex-direction:column;overflow:hidden}
  .live-results-page .results-board-panel .live-result-list{overflow-y:auto;min-height:0;flex:1;align-content:start}
 }
+
+/* Compact export action aligned to the top-right of live results. */
+.results-board-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.results-board-heading>div{min-width:0}
+.results-board-heading .export-results-button{flex:none;width:auto;padding:7px 11px;margin:0;font-size:12px;line-height:1.2;white-space:nowrap}
+@media(max-width:550px){.results-board-heading .export-results-button{padding:6px 8px;font-size:11px}}
