@@ -74,3 +74,8 @@
 .efficiency-input-row small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px}
 .efficiency-input-row input:not([type=range]){margin:0;padding:8px;width:100%;font-size:12px}
 @media(max-width:550px){.efficiency-input-row{grid-template-columns:minmax(0,1fr) 67px 67px}}
+
+/* Editable ballot rank control */
+.rank-position-input{width:42px;min-width:42px;max-width:42px;text-align:center;padding:5px 2px;border:1px solid var(--border,#b9c4d5);border-radius:7px;background:var(--panel,#fff);color:inherit;font-weight:700;font-size:14px;flex-shrink:0}
+.rank-position-input:focus{outline:2px solid #3d7bd9;outline-offset:1px}
+.rank-position-input.rank-position-invalid{border-color:#da3434;background:#ffe6e6;color:#971616;outline-color:#da3434}
