@@ -1,0 +1,49 @@
+{
+  "season": 2027,
+  "lastReviewed": "2026-10-12",
+  "methods": [
+    {
+      "id": "ap",
+      "name": "AP Top 25",
+      "source": "https://apnews.com/hub/ap-top-25-college-basketball-poll",
+      "status": "not_imported",
+      "reason": "No fully verified 2026-27 men's Top 25 ballot in connected source."
+    },
+    {
+      "id": "kenpom",
+      "name": "KenPom Rankings",
+      "source": "https://kenpom.com/",
+      "methodology": "https://kenpom.com/blog/ratings-methodology-update/",
+      "formula": "AdjEM = AdjO - AdjD",
+      "status": "not_imported",
+      "reason": "Official current season full-team adjusted ratings and redistribution rights not established. Exact opponent adjustment is proprietary."
+    },
+    {
+      "id": "bpi",
+      "name": "ESPN BPI",
+      "source": "https://www.espn.com/mens-college-basketball/bpi/_/view/bpi",
+      "status": "not_imported",
+      "reason": "2026-27 rankings not verified; published public BPI model does not expose exact proprietary calculation."
+    },
+    {
+      "id": "torvik",
+      "name": "Bart Torvik T-Rank",
+      "source": "https://barttorvik.com/trank.php?year=2027",
+      "dataDocumentation": "https://torvik.sportsdataverse.org/",
+      "status": "candidate",
+      "reason": "Free public CSV approach documented through toRvik; need to validate 2027 coverage, mapping and permitted website redistribution before importing."
+    },
+    {
+      "id": "spats_team",
+      "name": "SPATS Team Model",
+      "source": "SPATS-CBB-MODEL/data/processed/2027_preseason_power_experiment.csv",
+      "status": "connected"
+    },
+    {
+      "id": "spats_players",
+      "name": "SPATS Player Ratings",
+      "status": "partial",
+      "reason": "National player season coverage and roster matches incomplete."
+    }
+  ]
+}
