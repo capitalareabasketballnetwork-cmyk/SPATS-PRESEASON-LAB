@@ -18,3 +18,5 @@ The database uses permissive anonymous write policies and browser session identi
 `npm install` then `npm run dev`. Without Supabase variables, the model builder and research sections work but club sessions do not.
 
 Deployment trigger: initial Vercel production build requested.
+
+Vercel redeployment trigger after reconnecting GitHub integration.
