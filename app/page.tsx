@@ -8,7 +8,6 @@ type RosterPlayer={id:string;name:string;jersey:string;position:string;year:stri
 export default function Home(){
 const [codeExpanded,setCodeExpanded]=useState(false);
 const [rankingMethod,setRankingMethod]=useState('team');
-const [effOffWeight,setEffOffWeight]=useState(50),[effSearch,setEffSearch]=useState(''),[effInputs,setEffInputs]=useState<Record<string,{off:string;def:string}>>({});
 const [selectedPlayer,setSelectedPlayer]=useState<RosterPlayer|null>(null),[playerDetails,setPlayerDetails]=useState<{overview:unknown;statistics:unknown;normalizedStats?:{season:number;pointsPerGame:number;assistsPerGame:number;reboundsPerGame:number;fieldGoalPct:number;stealsPerGame:number;turnoversPerGame:number}|null}|null>(null),[playerLoading,setPlayerLoading]=useState(false);
 const [roster,setRoster]=useState<RosterPlayer[]>([]),[rosterStatus,setRosterStatus]=useState('');
 const [seasonRecord,setSeasonRecord]=useState<{wins:number|null;losses:number|null;games:number;complete:boolean}|null>(null),[recordLoading,setRecordLoading]=useState(false);
@@ -45,8 +44,6 @@ const methods=[
 {id:'team',name:'SPATS Team Model',description:'Adjust the importance of roster talent and previous-season win percentage. Rankings are calculated from the available SPATS team dataset.',ready:true},
 {id:'players',name:'SPATS Player Ratings',description:'Build team rankings from national player performance percentiles: points, assists, shooting, offensive and defensive rebounds, steals, blocks, turnovers per game, and minutes. Full national current-roster coverage is required before a reliable team ranking can be computed.',ready:false},
 ];
-const efficiencyRankings=useMemo(()=>teams.map(t=>{const entry=effInputs[t.id];const off=entry?.off?.trim()?Number(entry.off):NaN;const def=entry?.def?.trim()?Number(entry.def):NaN;return {...t,off,def,effScore:Number.isFinite(off)&&Number.isFinite(def)&&off>=0&&def>=0?(effOffWeight/100)*(off-100)+(1-effOffWeight/100)*(100-def):null}}).filter(t=>t.effScore!==null).sort((a,b)=>(b.effScore as number)-(a.effScore as number)),[teams,effInputs,effOffWeight]);
-const applyEfficiency=()=>{if(!efficiencyRankings.length){setMessage('Enter real offensive and defensive efficiency figures for at least one team before calculating.');return;}setBallot(efficiencyRankings.slice(0,25).map(t=>t.id));setMessage(efficiencyRankings.length<25?'Only '+efficiencyRankings.length+' teams have efficiency data. Add remaining teams manually to complete your Top 25.':'Efficiency ranking generated. Review your ballot before submitting.')};
 const chooseRankingMethod=(id:string)=>{setRankingMethod(id);setMessage('');if(id==='team')setBallot(rankings.slice(0,25).map(t=>t.id));else if(id==='manual')setBallot([])};
 const startRanking=()=>{setRankingMethod('team');setBallot(rankings.slice(0,25).map(t=>t.id));setPhase('ranking');setMessage('')};
 const dropTeam=(id:string,target:number)=>setBallot(old=>{const next=old.filter(x=>x!==id);next.splice(Math.max(0,Math.min(target,next.length)),0,id);return next.slice(0,25)});
