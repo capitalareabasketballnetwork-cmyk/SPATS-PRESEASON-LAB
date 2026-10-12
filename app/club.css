@@ -59,3 +59,11 @@
 
 /* Wider roster scouting overlay to make five gallery cards legible. */
 .team-dialog:has(.player-grid){width:min(96vw,1240px)}
+
+.ranking-method-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:14px 0}
+.ranking-method-option{border:1px solid #3c587c;background:#182b46;color:#e8f1ff;border-radius:9px;padding:11px 8px;text-align:left;font-size:12px;line-height:1.3}
+.ranking-method-option.selected{border-color:#e3b858;background:#32405a;color:#ffe09a}
+.ranking-method-description{border:1px solid #456080;background:#0d1d35;border-radius:10px;padding:14px;margin:12px 0}
+.ranking-method-description p{margin:8px 0;font-size:13px}
+.ranking-method-description a{color:#e3b858;font-size:12px}
+@media(max-width:550px){.ranking-method-options{grid-template-columns:1fr}}
