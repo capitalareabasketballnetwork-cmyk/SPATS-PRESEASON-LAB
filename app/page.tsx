@@ -48,7 +48,7 @@ const methods=[
 {id:'manual',name:'Keep it simple',description:'Build your own Top 25 with no formulas or statistics. Search, add, remove, and rearrange teams.',ready:true}
 ];
 const externalMethods=['ap','kenpom','bpi','torvik'];
-const rankingKey=(v:string)=>v.toLowerCase().normalize('NFKD').replace(/[’']/g,'').replace(/&/g,'and').replace(/[^a-z0-9 ]+/g,' ').replace(/\\s+/g,' ').trim();
+const rankingKey=(v:string)=>v.toLowerCase().normalize('NFKD').replace(/[’']/g,'').replace(/&/g,'and').replace(/[^a-z0-9 ]+/g,' ').replace(/\s+/g,' ').trim();
 const nameOverrides:Record<string,string>={
 'uconn':'uconn huskies','connecticut':'uconn huskies','duke':'duke blue devils',
 'michigan':'michigan wolverines','illinois':'illinois fighting illini','houston':'houston cougars','florida':'florida gators',
@@ -61,7 +61,8 @@ const nameOverrides:Record<string,string>={
 'st johns':'st johns red storm','mississippi':'ole miss rebels','arizona st':'arizona state sun devils',
 'virginia tech':'virginia tech hokies','west virginia':'west virginia mountaineers'};
 const matchRankedTeam=(label:string)=>{const key=rankingKey(label);const candidate=nameOverrides[key]||key;const matches=teams.filter(t=>{const n=rankingKey(t.name);return n===candidate||n.startsWith(candidate+' ')});return matches.length===1?matches[0]?.id:null};
-const externalItems=(id:string)=>{const data=publishedRankings[id as keyof typeof publishedRankings];if(!data||!('teams' in data))return [] as {rank:number;team:string}[];return data.teams};
+type PublishedRow={rank:number;team:string;bpi?:number;net?:number;off?:number;def?:number};
+const externalItems=(id:string):PublishedRow[]=>{switch(id){case 'ap':return publishedRankings.ap.teams;case 'bpi':return publishedRankings.bpi.teams;case 'kenpom':return publishedRankings.kenpom.teams;case 'torvik':return publishedRankings.torvik.teams;default:return []}};
 const applyPublished=(id:string)=>{const ranked=externalItems(id);const matched=ranked.map(p=>({rank:p.rank,name:p.team,id:matchRankedTeam(p.team)}));const first=matched.filter(p=>p.id).slice(0,25).map(p=>p.id as string);setBallot([...new Set(first)]);const misses=matched.slice(0,25).filter(p=>!p.id);setMessage(misses.length?'Imported '+first.length+' teams. Unmatched: '+misses.map(p=>p.name).join(', ')+'. Add replacements manually.':'Imported '+first.length+' ranked teams. Edit your Top 25 before submitting.')};
 
 const computeRosterScore=(players:RosterPlayer[],weights:number[],take:string)=>{const keys=['pointsPerGame','assistsPerGame','fieldGoalPct','reboundsPerGame','stealsPerGame','turnoversPerGame'];const read=(p:RosterPlayer,k:string)=>{const v=(p.stats as Record<string,unknown>|null)?.[k];return typeof v==='number'&&Number.isFinite(v)?v:null};const eligible=players.filter(p=>keys.every(k=>read(p,k)!==null));if(eligible.length<2)return null;const total=weights.reduce((a,b)=>a+b,0);if(total<=0)return null;const scores=eligible.map(p=>keys.reduce((sum,k,i)=>{const value=read(p,k) as number;const less=eligible.filter(other=>(read(other,k) as number)<value).length;const equal=eligible.filter(other=>read(other,k)===value).length;const percentile=100*(less+(equal-1)/2)/(eligible.length-1);return sum+(i===5?100-percentile:percentile)*weights[i]},0)/total).sort((a,b)=>b-a);const required=take==='all'?eligible.length:Number(take);if(scores.length<required)return null;return {score:scores.slice(0,required).reduce((a,b)=>a+b,0)/required,count:eligible.length}};
