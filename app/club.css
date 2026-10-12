@@ -67,3 +67,10 @@
 .ranking-method-description p{margin:8px 0;font-size:13px}
 .ranking-method-description a{color:#e3b858;font-size:12px}
 @media(max-width:550px){.ranking-method-options{grid-template-columns:1fr}}
+
+.efficiency-editor{background:#11243e;border:1px solid #375679;border-radius:12px;padding:14px;margin:12px 0}
+.efficiency-input-list{max-height:300px;overflow:auto;margin:12px 0}
+.efficiency-input-row{display:grid;grid-template-columns:minmax(0,1fr) 84px 84px;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid #324760}
+.efficiency-input-row small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px}
+.efficiency-input-row input:not([type=range]){margin:0;padding:8px;width:100%;font-size:12px}
+@media(max-width:550px){.efficiency-input-row{grid-template-columns:minmax(0,1fr) 67px 67px}}
