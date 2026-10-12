@@ -59,7 +59,10 @@ const nameOverrides:Record<string,string>={
 'utah st':'utah state aggies','florida st':'florida state seminoles','mississippi st':'mississippi state bulldogs',
 'texas a m':'texas a m aggies','saint marys':'saint marys gaels','north carolina':'north carolina tar heels',
 'st johns':'st johns red storm','mississippi':'ole miss rebels','arizona st':'arizona state sun devils',
-'virginia tech':'virginia tech hokies','west virginia':'west virginia mountaineers'};
+'virginia tech':'virginia tech hokies','west virginia':'west virginia mountaineers',
+'indiana':'indiana hoosiers','georgia':'georgia bulldogs','oklahoma':'oklahoma sooners','missouri':'missouri tigers',
+'maryland':'maryland terrapins','lsu':'lsu tigers','boise st':'boise state broncos',
+'san diego st':'san diego state aztecs','saint mary s':'saint marys gaels'};
 const matchRankedTeam=(label:string)=>{const key=rankingKey(label);const candidate=nameOverrides[key]||key;const exact=teams.filter(t=>rankingKey(t.name)===candidate);if(exact.length===1)return exact[0].id;const matches=teams.filter(t=>rankingKey(t.name).startsWith(candidate+' '));return matches.length===1?matches[0].id:null};
 type PublishedRow={rank:number;team:string;bpi?:number;net?:number;off?:number;def?:number};
 const externalItems=(id:string):PublishedRow[]=>{switch(id){case 'ap':return publishedRankings.ap.teams;case 'bpi':return publishedRankings.bpi.teams;case 'kenpom':return publishedRankings.kenpom.teams;case 'torvik':return publishedRankings.torvik.teams;default:return []}};
