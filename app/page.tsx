@@ -1,5 +1,5 @@
 'use client';
-import {useEffect,useMemo,useState} from 'react';
+import {useEffect,useMemo,useRef,useState} from 'react';
 import {db} from '../lib/supabase';
 import {fetchAllTeams,fetchHistoricalRosters,rank,type Team,type Weights,type HistoricalRoster} from '../lib/data';
 import publishedRankings from '../data/rankings-2027.json';
@@ -20,6 +20,7 @@ const [teams,setTeams]=useState<Team[]>([]),[error,setError]=useState(''),[tab,s
 const [talent,setTalent]=useState(75),[performance,setPerformance]=useState(25),[nickname,setNickname]=useState(''),[code,setCode]=useState(''),[join,setJoin]=useState('');
 const [selectedTeam,setSelectedTeam]=useState<string|null>(null),[dragged,setDragged]=useState<string|null>(null),[poolLimit,setPoolLimit]=useState(60);
 const [joinOpen,setJoinOpen]=useState(false),[playerWeights,setPlayerWeights]=useState([3,3,3,3,3,3]),[computedPlayerWeights,setComputedPlayerWeights]=useState([3,3,3,3,3,3]);
+const savedViews=useRef<Record<string,{ballot:string[];method:string;talent:number;performance:number}>>({});
 const [ballot,setBallot]=useState<string[]>([]),[phase,setPhase]=useState('model'),[ballots,setBallots]=useState<{nickname:string;rankings:string[]}[]>([]),[search,setSearch]=useState('');
 const [submissions,setSubmissions]=useState<Submission[]>([]),[votes,setVotes]=useState<Vote[]>([]),[message,setMessage]=useState(''),[showAll,setShowAll]=useState(false);
 useEffect(()=>{try{const saved=localStorage.getItem('spats-player-weights');if(saved){const parsed=JSON.parse(saved);if(Array.isArray(parsed)&&parsed.length===6&&parsed.every((v:unknown)=>typeof v==='number'&&v>=0&&v<=5))setPlayerWeights(parsed.map((v:number)=>Math.max(1,Math.round(v))))}}catch{}},[]);
@@ -81,7 +82,7 @@ useEffect(()=>{if(!code||!db)return;const client=db;const load=async()=>{const {
 const consensus=useMemo(()=>{const counts=new Map<string,number>();ballots.forEach(b=>b.rankings.forEach((id,i)=>counts.set(id,(counts.get(id)||0)+25-i)));return [...counts].sort((a,b)=>b[1]-a[1])},[ballots]);
 return <main><header><div className="brand"><span className="logo">S</span><div><strong>Sports Analytics at WMU</strong><small>CLUB RANKINGS</small></div></div><span className="season">2026–27 · NCAA D-I</span></header>
 <section className="hero compact-hero"><div className="eyebrow">SPATS · COLLEGE BASKETBALL</div><h1>Club Rankings</h1><p>Research the teams, explore the data, and build the club’s Top 25 throughout the season.</p></section>
-<nav>{[['club','Club Voting LIVE'],['builder','Lab'],['research','Research']].map(([id,label])=><button className={tab===id?'active':''} key={id} onClick={()=>setTab(id)}>{label}</button>)}</nav>
+<nav>{[['club','Club Voting LIVE'],['builder','Lab'],['research','Research']].map(([id,label])=><button className={tab===id?'active':''} key={id} onClick={()=>{if(id!==tab){if(tab==='club'||tab==='builder')savedViews.current[tab]={ballot:[...ballot],method:rankingMethod,talent,performance};if(id==='club'||id==='builder'){const state=savedViews.current[id];setBallot(state?[...state.ballot]:id==='builder'?rankings.slice(0,25).map(t=>t.id):[]);setRankingMethod(state?.method||'team');setTalent(state?.talent??75);setPerformance(state?.performance??25);setRankDrafts({});setMessage('')}}setTab(id)}}>{label}</button>)}</nav>
 {error&&<div className="alert">Data error: {error}</div>}
 {tab==='research'&&<section className="panel"><div className="eyebrow">HISTORICAL SPATS STUDY · 2018–2026</div><h2>What actually correlates with winning?</h2><p>From 2,970 historical team-seasons. These are associations, not causal effects.</p><h3>High-value returning players (prior SPATS rating ≥65)</h3><div className="bars">{[['0',41.24],['1',48.93],['2',54.86],['3+',59.92]].map(([label,value])=><div className="stat" key={label}><div className="between"><b>{label} returning</b><strong>{value}% win rate</strong></div><div className="bar"><div style={{width:value+'%'}}/></div></div>)}</div><h3>Incoming transfers</h3><p>Raw transfer count had almost no relationship with winning (r = −0.023). Teams with 3+ high-value incoming transfers improved their winning percentage by an average 3.68 percentage points, but the relationship was weak.</p><h3>Freshmen and first-seen players</h3><p>Our current dataset cannot reliably distinguish freshmen from other players entering Division I. We will not label all first-seen players as freshmen.</p><p className="note">Source: SPATS-CBB-MODEL historical_roster_patterns_2018_2026.csv</p></section>}
 {(tab==='club'||tab==='builder')&&<div>
