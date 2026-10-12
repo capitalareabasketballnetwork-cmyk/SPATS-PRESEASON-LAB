@@ -7,9 +7,12 @@ type Vote={submission_id:string};
 export default function Home(){
 const [teams,setTeams]=useState<Team[]>([]),[error,setError]=useState(''),[tab,setTab]=useState('club');
 const [talent,setTalent]=useState(75),[performance,setPerformance]=useState(25),[nickname,setNickname]=useState(''),[code,setCode]=useState(''),[join,setJoin]=useState('');
+const [selectedTeam,setSelectedTeam]=useState<string|null>(null),[dragged,setDragged]=useState<string|null>(null),[poolLimit,setPoolLimit]=useState(60);
 const [joinOpen,setJoinOpen]=useState(false),[playerWeights,setPlayerWeights]=useState([25,15,20,15,15,10]);
 const [ballot,setBallot]=useState<string[]>([]),[phase,setPhase]=useState('model'),[ballots,setBallots]=useState<{nickname:string;rankings:string[]}[]>([]),[search,setSearch]=useState('');
 const [submissions,setSubmissions]=useState<Submission[]>([]),[votes,setVotes]=useState<Vote[]>([]),[message,setMessage]=useState(''),[showAll,setShowAll]=useState(false);
+useEffect(()=>{try{const saved=localStorage.getItem('spats-player-weights');if(saved){const parsed=JSON.parse(saved);if(Array.isArray(parsed)&&parsed.length===6&&parsed.every((v:unknown)=>typeof v==='number'&&v>=0&&v<=100))setPlayerWeights(parsed)}}catch{}},[]);
+useEffect(()=>{localStorage.setItem('spats-player-weights',JSON.stringify(playerWeights))},[playerWeights]);
 const continuity=0,weights:Weights={talent,performance,continuity};
 const rankings=useMemo(()=>rank(teams,weights),[teams,talent,performance,continuity]);
 useEffect(()=>{fetchTeams().then(setTeams).catch(e=>setError(e.message))},[]);
@@ -20,6 +23,7 @@ const enter=async()=>{if(!db){setMessage('Supabase is not configured.');return}c
 const submit=async()=>{if(!db||!code)return;if(!nickname.trim()){setMessage('Enter your nickname first.');return}const {error}=await db.from('submissions').upsert({session_code:code,member_id:memberId(),nickname:nickname.trim(),...weights},{onConflict:'session_code,member_id'});setMessage(error?error.message:'Your model has been submitted!')};
 const vote=async(id:string)=>{if(!db||!code)return;const {error}=await db.from('votes').upsert({session_code:code,voter_id:memberId(),submission_id:id},{onConflict:'session_code,voter_id'});setMessage(error?error.message:'Vote recorded!')};
 const startRanking=()=>{setBallot(rankings.slice(0,25).map(t=>t.id));setPhase('ranking');setMessage('')};
+const dropTeam=(id:string,target:number)=>setBallot(old=>{const next=old.filter(x=>x!==id);next.splice(Math.max(0,Math.min(target,next.length)),0,id);return next.slice(0,25)});
 const move=(i:number,d:number)=>setBallot(old=>{const j=i+d;if(j<0||j>=old.length)return old;const next=[...old];[next[i],next[j]]=[next[j],next[i]];return next});
 const sendBallot=async()=>{if(!db||!code)return;if(!nickname.trim()){setMessage('Enter your nickname.');return}if(ballot.length!==25){setMessage('Choose exactly 25 teams.');return}const {error}=await db.from('ballots').upsert({session_code:code,member_id:memberId(),nickname:nickname.trim(),rankings:ballot},{onConflict:'session_code,member_id'});if(error)setMessage(error.message);else{setMessage('Your Top 25 was submitted!');setPhase('results')}};
 useEffect(()=>{if(!code||!db)return;const client=db;const load=async()=>{const {data}=await client.from('ballots').select('nickname,rankings').eq('session_code',code);if(data)setBallots(data)};void load();const interval=setInterval(()=>void load(),5000);return()=>clearInterval(interval)},[code]);
