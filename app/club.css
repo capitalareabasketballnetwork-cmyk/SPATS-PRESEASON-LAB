@@ -104,3 +104,21 @@
 .rank-buttons .rank-down{background:#a82f37;border-color:#e05b64;color:#fff}
 .rank-buttons .rank-up:hover:not(:disabled){background:#168254}
 .rank-buttons .rank-down:hover:not(:disabled){background:#c83c46}
+
+/* Taller voting board: complete top 25 and vote totals remain readable. */
+@media (min-width:781px){
+ .live-results-page .results-board-panel{height:max(980px,calc(115dvh - 84px));min-height:980px}
+ .live-results-page .results-board-panel .live-result-list{overflow:visible;grid-template-rows:repeat(9,minmax(74px,1fr));gap:8px}
+ .live-results-page .live-result-row{padding:7px 11px;gap:10px}
+ .live-results-page .live-result-row img{width:39px;height:39px}
+ .live-results-page .live-result-votes{min-width:73px}
+ .live-results-page .live-result-votes small{font-size:11px;line-height:1.3}
+}
+@media (min-width:781px) and (max-width:1099px){
+ .live-results-page .results-board-panel{height:max(1150px,125dvh);min-height:1150px}
+ .live-results-page .results-board-panel .live-result-list{grid-template-rows:repeat(13,minmax(70px,1fr))}
+}
+@media (max-width:780px){
+ .live-results-page .results-board-panel{height:auto;min-height:0;overflow:visible}
+ .live-results-page .results-board-panel .live-result-list{overflow:visible;max-height:none}
+}
