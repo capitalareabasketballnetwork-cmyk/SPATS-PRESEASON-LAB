@@ -61,3 +61,14 @@
 .nfl-accuracy-chip.nfl-quality-strong{background:#126b2f;color:#8dffae}
 .nfl-accuracy-chip.nfl-quality-moderate{background:#5b4a00;color:#ffe66d}
 .nfl-accuracy-chip.nfl-quality-weak{background:#5b1111;color:#ff9a90}
+
+/* Account access for cloud-synced NFL saved models. */
+.nfl-auth-panel{background:#172a46;border:1px solid #3c5778;border-radius:12px;padding:14px 17px;margin:0 0 18px}
+.nfl-auth-form{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.nfl-auth-form>div{flex:1;min-width:210px}
+.nfl-auth-form>div p{margin:4px 0}
+.nfl-auth-form input{width:190px;margin:0;padding:10px}
+.nfl-auth-form select{background:#101f35;color:#eaf1ff;padding:10px;border:1px solid #4d6686;border-radius:8px}
+.nfl-auth-form button{white-space:nowrap}
+.nfl-auth-signed{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;font-size:13px;color:#c2d1e6}
+@media(max-width:760px){.nfl-auth-form input{width:100%}.nfl-auth-form>div{width:100%;flex-basis:100%}}
