@@ -202,3 +202,8 @@
 .nfl-odds-verdict{background:#152b47;border:1px solid #426188;border-radius:12px;padding:17px 20px;margin:15px 0 20px!important;text-align:center;line-height:1.65;color:#e5eefb;font-size:14px}
 .nfl-odds-verdict strong{color:#f4cd78}
 @media(max-width:560px){.nfl-odds-breakdown{gap:0}.nfl-odds-breakdown>div{padding:0 7px}.nfl-odds-breakdown strong{font-size:16px}.nfl-odds-card>small{text-align:center}}
+
+/* A completed tied game is a push, not a model win or loss. */
+.nfl-table tr.nfl-game-result-push td{background:#23344e;border-top:1px solid #68809f;border-bottom:1px solid #68809f}
+.nfl-table tr.nfl-game-result-push td:first-child{border-left:2px solid #91a7c3;border-radius:7px 0 0 7px}
+.nfl-table tr.nfl-game-result-push td:last-child{border-right:2px solid #91a7c3;border-radius:0 7px 7px 0}
