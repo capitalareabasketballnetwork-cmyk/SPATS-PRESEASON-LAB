@@ -13,12 +13,58 @@ function label(k:string){const known:Record<string,string>={point_differential_p
 function direction(k:string){return /allowed|against|penalt|interception|sack_allowed|pressure_allowed|turnover_rate|^def_success_rate/.test(k)?-1:1}
 const num=(x:string)=>x===''?NaN:Number(x);
 const canon=(team:string)=>team==='WSH'?'WAS':team==='LAR'?'LA':team;
-let scheduleCache2026:Promise<any[]>|undefined;
-async function schedule2026(week:number){const url='https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?dates=2026&seasontype=2&week='+week;const res=await fetch(url,{next:{revalidate:1800}});if(!res.ok)throw Error('2026 schedule unavailable');const json=await res.json();return (json.events||[]).map((event:any)=>{const competition=event.competitions?.[0];const competitors=competition?.competitors||[];const home=competitors.find((x:any)=>x.homeAway==='home');const away=competitors.find((x:any)=>x.homeAway==='away');if(!home||!away)return null;const finished=event.status?.type?.completed===true;const homeScore=finished?Number(home.score):null;const awayScore=finished?Number(away.score):null;const winner=finished&&homeScore!==null&&awayScore!==null&&Number.isFinite(homeScore)&&Number.isFinite(awayScore)&&homeScore!==awayScore?(homeScore>awayScore?home.team.abbreviation:away.team.abbreviation):null;return {game_id:String(event.id),season:2026,week,date:event.date,home:home.team.abbreviation,away:away.team.abbreviation,homeScore:homeScore===null?'':String(homeScore),awayScore:awayScore===null?'':String(awayScore),winner}}).filter(Boolean)}
-
-async function fullSchedule2026(){if(!scheduleCache2026)scheduleCache2026=Promise.all(Array.from({length:18},(_,i)=>schedule2026(i+1))).then(x=>x.flat()).catch(e=>{scheduleCache2026=undefined;throw e});return scheduleCache2026}
-
-export async function GET(req:NextRequest){try{const week=Number(req.nextUrl.searchParams.get('week'));if(req.nextUrl.searchParams.get('season')==='2026'&&Number.isInteger(week)&&week>=1&&week<=18){const games=await schedule2026(week);return NextResponse.json({schedule:games})}const d=await load();return NextResponse.json({stats:d.stats.map(k=>({key:k,label:label(k),direction:direction(k),common:/point_differential|epa_per_play|def_success_rate|third_down|yards_per_play|turnover_margin|yards_per_game|time_of_possession|fourth_down|penalty/.test(k)})),seasons:d.seasons,games:d.games.length,teamRows:d.team.length})}catch(e){return NextResponse.json({error:String(e)},{status:500})}}
+// Keep the live score cache short-lived; a resolved Promise must not freeze scores.
+let scheduleCache2026:{until:number;value:Promise<any[]>}|undefined;
+type ScheduleGame={game_id:string;season:number;week:number;date:string;home:string;away:string;homeScore:string;awayScore:string;winner:string|null;final:boolean};
+function parsedEvent(event:any,week:number):ScheduleGame|null{
+ const comp=event.competitions?.[0];const teams=comp?.competitors||[];
+ const home=teams.find((x:any)=>x.homeAway==='home'),away=teams.find((x:any)=>x.homeAway==='away');
+ if(!home||!away)return null;
+ const status=comp?.status?.type||event.status?.type||{};
+ const finished=status.completed===true||status.state==='post';
+ const hs=home.score==null||home.score===''?NaN:Number(home.score),as=away.score==null||away.score===''?NaN:Number(away.score);
+ const final=finished&&Number.isFinite(hs)&&Number.isFinite(as);
+ return {game_id:String(event.id),season:2026,week,date:event.date,home:home.team.abbreviation,away:away.team.abbreviation,homeScore:final?String(hs):'',awayScore:final?String(as):'',winner:final&&hs!==as?(hs>as?home.team.abbreviation:away.team.abbreviation):null,final}
+}
+async function schedule2026(week:number){
+ const url='https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?dates=2026&seasontype=2&week='+week+'&limit=100';
+ const res=await fetch(url,{next:{revalidate:120}});if(!res.ok)throw Error('2026 schedule unavailable');
+ const json=await res.json();const games:ScheduleGame[]=(json.events||[]).map((e:any)=>parsedEvent(e,week)).filter(Boolean);
+ // ESPN scoreboard can leave an individual completed game's status stale.
+ // Check its dedicated event summary rather than marking the game pending.
+ const now=Date.now();
+ await Promise.all(games.map(async (game,i)=>{
+   if(game.final||!game.date||new Date(game.date).getTime()+5*60*60*1000>now)return;
+   try{
+     const detail=await fetch('https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event='+encodeURIComponent(game.game_id),{next:{revalidate:120}});
+     if(!detail.ok)return;
+     const data=await detail.json();const competition=data.header?.competitions?.[0];
+     const resolved=parsedEvent({id:game.game_id,date:game.date,competitions:[competition],status:competition?.status},week);
+     if(resolved?.final)games[i]=resolved;
+   }catch{}
+ }));
+ return games;
+}
+async function fullSchedule2026(){if(!scheduleCache2026||Date.now()>scheduleCache2026.until){
+ const value=Promise.all(Array.from({length:18},(_,i)=>schedule2026(i+1))).then(x=>x.flat()).catch(e=>{scheduleCache2026=undefined;throw e});
+ scheduleCache2026={until:Date.now()+120000,value};
+ }return scheduleCache2026.value}
+function fillRepoScores(games:ScheduleGame[],rows:Row[]):ScheduleGame[]{
+ const known=new Map<string,Row>();
+ for(const row of rows){if(Number(row.season)!==2026)continue;
+  known.set(row.week+'|'+canon(row.away_team)+'|'+canon(row.home_team),row)}
+ return games.map(g=>{
+  if(g.final)return g;
+  const match=known.get(g.week+'|'+canon(g.away)+'|'+canon(g.home));
+  if(!match)return g;
+  const hs=num(match.home_score),as=num(match.away_score);
+  // A recorded score pair is a completed game only if a final margin is present.
+  const margin=num(match.home_margin);
+  if(!Number.isFinite(hs)||!Number.isFinite(as)||!Number.isFinite(margin))return g;
+  return {...g,homeScore:String(hs),awayScore:String(as),winner:hs===as?null:hs>as?g.home:g.away,final:true};
+ });
+}
+export async function GET(req:NextRequest){try{const week=Number(req.nextUrl.searchParams.get('week'));if(req.nextUrl.searchParams.get('season')==='2026'&&Number.isInteger(week)&&week>=1&&week<=18){const [games,d]=await Promise.all([schedule2026(week),load()]);return NextResponse.json({schedule:fillRepoScores(games,d.games)})}const d=await load();return NextResponse.json({stats:d.stats.map(k=>({key:k,label:label(k),direction:direction(k),common:/point_differential|epa_per_play|def_success_rate|third_down|yards_per_play|turnover_margin|yards_per_game|time_of_possession|fourth_down|penalty/.test(k)})),seasons:d.seasons,games:d.games.length,teamRows:d.team.length})}catch(e){return NextResponse.json({error:String(e)},{status:500})}}
 export async function POST(req:NextRequest){try{
  const payload=await req.json();const d=await load();const active=(payload.weights||{}) as Record<string,number>;
  const keys=Object.keys(active).filter(k=>d.stats.includes(k)&&Number(active[k])>0);
@@ -39,7 +85,7 @@ export async function POST(req:NextRequest){try{
  }));
  // The permanent repository export can lag the live season. For 2026, use the
  // complete schedule, while model features still come only from repository team data.
- if(start<=2026&&end>=2026){const live=await fullSchedule2026();const historical=gameRows.filter(g=>g.season!==2026);gameRows.length=0;gameRows.push(...historical,...live.map((g:any)=>({game_id:g.game_id,season:2026,week:g.week,date:g.date,home:g.home,away:g.away,homeScore:g.homeScore,awayScore:g.awayScore,margin:g.winner?(Number(g.homeScore)-Number(g.awayScore)):NaN})))}
+ if(start<=2026&&end>=2026){const live=fillRepoScores(await fullSchedule2026(),d.games);const historical=gameRows.filter(g=>g.season!==2026);gameRows.length=0;gameRows.push(...historical,...live.map((g:any)=>({game_id:g.game_id,season:2026,week:g.week,date:g.date,home:g.home,away:g.away,homeScore:g.homeScore,awayScore:g.awayScore,margin:g.final?(Number(g.homeScore)-Number(g.awayScore)):NaN})))}
 
  const priorValues=(teamRaw:string,season:number,week:number,date:string)=>{
    const seasons=byTeam.get(canon(teamRaw));if(!seasons)return null;
