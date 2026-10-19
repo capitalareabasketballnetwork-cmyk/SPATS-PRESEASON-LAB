@@ -81,11 +81,11 @@ export async function POST(req:NextRequest){try{
  const gameRows:any[]=d.games.filter(g=>num(g.season)>=start&&num(g.season)<=end).map(g=>({
    game_id:g.game_id,season:Number(g.season),week:Number(g.week),date:g.game_date,
    home:g.home_team,away:g.away_team,homeScore:g.home_score,awayScore:g.away_score,
-   margin:num(g.home_margin)
+   margin:num(g.home_margin),final:Number.isFinite(num(g.home_margin))
  }));
  // The permanent repository export can lag the live season. For 2026, use the
  // complete schedule, while model features still come only from repository team data.
- if(start<=2026&&end>=2026){const live=fillRepoScores(await fullSchedule2026(),d.games);const historical=gameRows.filter(g=>g.season!==2026);gameRows.length=0;gameRows.push(...historical,...live.map((g:any)=>({game_id:g.game_id,season:2026,week:g.week,date:g.date,home:g.home,away:g.away,homeScore:g.homeScore,awayScore:g.awayScore,margin:g.final?(Number(g.homeScore)-Number(g.awayScore)):NaN})))}
+ if(start<=2026&&end>=2026){const live=fillRepoScores(await fullSchedule2026(),d.games);const historical=gameRows.filter(g=>g.season!==2026);gameRows.length=0;gameRows.push(...historical,...live.map((g:any)=>({game_id:g.game_id,season:2026,week:g.week,date:g.date,home:g.home,away:g.away,homeScore:g.homeScore,awayScore:g.awayScore,margin:g.final?(Number(g.homeScore)-Number(g.awayScore)):NaN,final:g.final})))}
 
  const priorValues=(teamRaw:string,season:number,week:number,date:string)=>{
    const seasons=byTeam.get(canon(teamRaw));if(!seasons)return null;
@@ -122,7 +122,7 @@ export async function POST(req:NextRequest){try{
    for(const k of keys){const vals=entries.map(e=>e.values[k]).filter(Number.isFinite);const mean=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:NaN;const sd=vals.length?Math.sqrt(vals.reduce((a,b)=>a+(b-mean)**2,0)/vals.length):NaN;moments[k]={mean,sd}}
    for(const e of entries){let rating=0;let complete=true;for(const k of keys){const x=e.values[k],m=moments[k];if(!Number.isFinite(x)||!Number.isFinite(m.mean)||!Number.isFinite(m.sd)){complete=false;break}rating+=(m.sd>0?(x-m.mean)/m.sd:0)*direction(k)*Number(active[k])/weightTotal}if(complete)ratings.set(e.game.game_id+'|'+e.side,rating)}
  }
- const rows=gameRows.map(g=>{const home=ratings.get(g.game_id+'|home'),away=ratings.get(g.game_id+'|away');const rated=home!==undefined&&away!==undefined;const edge=rated?home-away:0;const pick=rated?(edge>=0?g.home:g.away):null;const winner=Number.isFinite(g.margin)&&g.margin!==0?(g.margin>0?g.home:g.away):null;return {game_id:g.game_id,season:g.season,week:g.week,date:g.date,home:g.home,away:g.away,homeScore:g.homeScore,awayScore:g.awayScore,homeRating:home,awayRating:away,edge,pick,winner,correct:winner&&pick?canon(pick)===canon(winner):null}});
+ const rows=gameRows.map(g=>{const home=ratings.get(g.game_id+'|home'),away=ratings.get(g.game_id+'|away');const rated=home!==undefined&&away!==undefined;const edge=rated?home-away:0;const pick=rated?(edge>=0?g.home:g.away):null;const winner=Number.isFinite(g.margin)&&g.margin!==0?(g.margin>0?g.home:g.away):null;return {game_id:g.game_id,season:g.season,week:g.week,date:g.date,home:g.home,away:g.away,homeScore:g.homeScore,awayScore:g.awayScore,final:g.final===true,homeRating:home,awayRating:away,edge,pick,winner,correct:winner&&pick?canon(pick)===canon(winner):null}});
  const finished=rows.filter(x=>x.correct!==null);
  const seasonList=Array.from(new Set(rows.map(x=>x.season))).sort((a,b)=>a-b).map(season=>{const games=finished.filter(x=>x.season===season);return {season,games:games.length,wins:games.filter(x=>x.correct).length,accuracy:games.length?100*games.filter(x=>x.correct).length/games.length:0}});
  return NextResponse.json({games:rows,summary:seasonList,record:{games:finished.length,wins:finished.filter(x=>x.correct).length,accuracy:finished.length?100*finished.filter(x=>x.correct).length/finished.length:0},stats:keys});
