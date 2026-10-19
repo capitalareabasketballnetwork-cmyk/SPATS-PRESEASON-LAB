@@ -218,3 +218,36 @@
 .nfl-odds-pick-split small{font-size:11px;color:#fff;letter-spacing:.09em}
 .nfl-odds-pick-split strong{font-size:clamp(20px,3vw,29px);color:#fff;font-variant-numeric:tabular-nums}
 @media(max-width:560px){.nfl-odds-pick-split>div{padding:0 8px}.nfl-odds-pick-split small{font-size:9px}}
+
+/* Football research subpages and market highlights */
+.nfl-feature-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:15px 0 20px}
+.nfl-feature-links a{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:15px 19px;border:1px solid #547093;border-radius:11px;background:#192f4d;color:#f3cd78;text-decoration:none;font-weight:800}
+.nfl-feature-links a:hover{background:#213d60;border-color:#f3cd78}
+.nfl-feature-links span{font-size:12px;font-weight:500;color:#d1deef}
+.nfl-odds-highlights{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:17px 0}
+.nfl-odds-highlights>div{border:1px solid #516785;border-radius:12px;padding:18px;background:#182e4a}
+.nfl-odds-highlights .nfl-odds-highlight-win{border-color:#349a70;background:#133c30}
+.nfl-odds-highlights .nfl-odds-highlight-loss{border-color:#b65366;background:#45242f}
+.nfl-odds-highlights small{display:block;font-size:11px;letter-spacing:.07em;font-weight:800;color:#e0e9f6}
+.nfl-odds-highlights strong{display:block;font-size:24px;margin:12px 0 5px;color:#fff}
+.nfl-odds-highlights strong span{color:#f7d180}
+.nfl-odds-highlights p{margin:5px 0 9px;color:#dce6f2;font-size:13px}
+.nfl-odds-highlights b{color:#fff;font-size:14px}
+.nfl-scorelab{max-width:1250px;margin:0 auto;padding:30px 20px 60px;color:#e7edf8}
+.nfl-scorelab h1{font-size:clamp(26px,4vw,38px);margin:15px 0 9px}
+.nfl-scorelab h2{font-size:22px}
+.nfl-scorelab>p{color:#b9cbe2;line-height:1.6}
+.nfl-scorelab-top{display:flex;justify-content:space-between;gap:12px;align-items:center;color:#f0c776;font-size:12px;letter-spacing:.07em}
+.nfl-scorelab-top a{color:#f0c776;text-decoration:none;font-size:14px;letter-spacing:normal}
+.nfl-scorelab .panel{margin-top:22px}
+.nfl-scorelab-switch{display:flex;gap:9px;margin:16px 0}
+.nfl-scorelab-switch button{border:1px solid #4b6484;border-radius:9px;padding:12px 18px;background:#172b45;color:#e6efff;font-weight:800}
+.nfl-scorelab-switch button.active{background:#d5a847;color:#14223a;border-color:#d5a847}
+.nfl-scorelab .nfl-table{overflow-x:auto}
+.nfl-scorelab .nfl-table table{min-width:950px}
+.nfl-scorelab .nfl-table small{color:#afc2dc}
+.nfl-advisor-weights{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;margin:16px 0 20px}
+.nfl-advisor-weights>div{display:grid;grid-template-columns:1fr auto;gap:8px;font-size:13px;color:#dce7f6}
+.nfl-advisor-track{grid-column:1/-1;height:7px;background:#263d5a;border-radius:8px;overflow:hidden}
+.nfl-advisor-track i{display:block;height:100%;background:#e3bd63;border-radius:8px}
+@media(max-width:700px){.nfl-feature-links,.nfl-odds-highlights,.nfl-advisor-weights{grid-template-columns:1fr}.nfl-feature-links a{flex-wrap:wrap}.nfl-scorelab{padding:20px 13px 50px}}
