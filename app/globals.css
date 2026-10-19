@@ -121,3 +121,16 @@
 .nfl-week-incorrect .nfl-week-outcome{color:#ffadb9}
 .nfl-week-neutral .nfl-week-outcome{color:#b6c7dc}
 @media(max-width:660px){.nfl-week-row{grid-template-columns:1fr 1fr;gap:12px;padding:12px}.nfl-week-outcome{text-align:right}.nfl-week-score{text-align:right}}
+
+/* Week Explorer summary + Odds Calculator */
+.nfl-week-summary,.nfl-odds-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0 18px}
+.nfl-week-summary>div,.nfl-odds-summary>div{padding:16px 18px;border:1px solid #3d5574;border-radius:11px;background:#132740;display:flex;flex-direction:column;gap:5px}
+.nfl-week-summary small,.nfl-odds-summary small{font-size:10px;letter-spacing:.08em;color:#aebfd5;font-weight:800}
+.nfl-week-summary strong,.nfl-odds-summary strong{font-size:24px;color:#f0ca78}
+.nfl-odds-summary{grid-template-columns:repeat(4,minmax(0,1fr))}
+.nfl-odds-survey{display:grid;grid-template-columns:2fr 1fr 1fr 1.2fr auto;gap:12px;align-items:end;margin:20px 0}
+.nfl-odds-survey label{display:flex;flex-direction:column;gap:7px;font-size:12px;font-weight:800;color:#c7d5e8}
+.nfl-odds-survey select,.nfl-odds-survey input{width:100%}
+.nfl-odds-survey button{min-height:42px;white-space:nowrap}
+@media(max-width:900px){.nfl-odds-survey{grid-template-columns:1fr 1fr}.nfl-odds-survey button{grid-column:1/-1}.nfl-odds-summary{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.nfl-week-summary,.nfl-odds-summary{grid-template-columns:1fr}.nfl-odds-survey{grid-template-columns:1fr}}
