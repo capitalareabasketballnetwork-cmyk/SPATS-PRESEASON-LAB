@@ -190,3 +190,15 @@
 .nfl-score .nfl-betting-risked{font-size:17px;color:#fff;font-weight:800}
 .nfl-score>span{text-align:center}
 .nfl-score>strong{font-variant-numeric:tabular-nums}
+
+/* The betting scorecard shares Model Results' strong/weak background colors. */
+.nfl-score.nfl-odds-card{padding:26px 26px 0;gap:9px;overflow:hidden}
+.nfl-odds-card>strong{font-size:clamp(40px,6vw,62px);line-height:1.1;letter-spacing:-.035em}
+.nfl-odds-breakdown{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;max-width:700px;margin:16px auto 0;padding:20px 0 24px;border-top:1px solid #ffffff55}
+.nfl-odds-breakdown>div{display:flex;flex-direction:column;gap:8px;align-items:center;padding:0 14px}
+.nfl-odds-breakdown>div+div{border-left:1px solid #ffffff55}
+.nfl-odds-breakdown small{color:#fff!important;font-size:11px;letter-spacing:.1em}
+.nfl-odds-breakdown strong{font-size:clamp(17px,2.3vw,24px);color:#fff;line-height:1.2;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.nfl-odds-verdict{background:#152b47;border:1px solid #426188;border-radius:12px;padding:17px 20px;margin:15px 0 20px!important;text-align:center;line-height:1.65;color:#e5eefb;font-size:14px}
+.nfl-odds-verdict strong{color:#f4cd78}
+@media(max-width:560px){.nfl-odds-breakdown{gap:0}.nfl-odds-breakdown>div{padding:0 7px}.nfl-odds-breakdown strong{font-size:16px}.nfl-odds-card>small{text-align:center}}
