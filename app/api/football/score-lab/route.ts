@@ -3,7 +3,7 @@ import {gunzipSync} from 'node:zlib';
 export const runtime='nodejs';
 export const maxDuration=60;
 type Row=Record<string,string>;
-type Game={game_id:string;season:number;week:number;date:string;home:string;away:string;homeScore:string;awayScore:string;homeRating?:number;awayRating?:number;edge:number;pick:string|null;final:boolean};
+type Game={game_id:string;season:number;week:number;date:string;home:string;away:string;homeScore:string;awayScore:string;homeRating?:number;awayRating?:number;edge:number;pick:string|null;confidence?:number|null;final:boolean};
 let oddsCache:Promise<Row[]>|undefined;
 const canon=(s:string)=>s==='WSH'?'WAS':s==='LAR'?'LA':s;
 const num=(s:unknown)=>s===undefined||s===null||s===''?NaN:Number(s);
@@ -72,7 +72,7 @@ export async function POST(req:NextRequest){
   const totalPrice=totalPick==='over'?num(o?.over_odds):totalPick==='under'?num(o?.under_odds):NaN;
   const spread=settle(spreadPick,actualMargin,homeSpread,'spread',stake,spreadPrice);
   const totals=settle(totalPick,actualTotal,totalLine,'total',stake,totalPrice);
-  results.push({game_id:g.game_id,season:g.season,week:g.week,home:g.home,away:g.away,final:g.final,actualHome:g.homeScore,actualAway:g.awayScore,homePoints:Math.max(0,homePoints),awayPoints:Math.max(0,awayPoints),margin,total,homeSpread:Number.isFinite(homeSpread)?homeSpread:null,totalLine:Number.isFinite(totalLine)?totalLine:null,spreadPick,totalPick,spreadPrice:Number.isFinite(spreadPrice)?spreadPrice:null,totalPrice:Number.isFinite(totalPrice)?totalPrice:null,spreadOutcome:spread.outcome,spreadProfit:spread.profit,totalOutcome:totals.outcome,totalProfit:totals.profit});
+  results.push({game_id:g.game_id,season:g.season,week:g.week,home:g.home,away:g.away,final:g.final,winnerConfidence:g.confidence??null,actualHome:g.homeScore,actualAway:g.awayScore,homePoints:Math.max(0,homePoints),awayPoints:Math.max(0,awayPoints),margin,total,homeSpread:Number.isFinite(homeSpread)?homeSpread:null,totalLine:Number.isFinite(totalLine)?totalLine:null,spreadPick,totalPick,spreadPrice:Number.isFinite(spreadPrice)?spreadPrice:null,totalPrice:Number.isFinite(totalPrice)?totalPrice:null,spreadOutcome:spread.outcome,spreadProfit:spread.profit,totalOutcome:totals.outcome,totalProfit:totals.profit});
  }
  for(const g of batch){
   const h=num(g.homeScore),a=num(g.awayScore);
