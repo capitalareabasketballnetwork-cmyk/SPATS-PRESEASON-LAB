@@ -12,32 +12,72 @@ async function load():Promise<Data>{if(!cache)cache=(async()=>{const [team,games
 function label(k:string){const known:Record<string,string>={point_differential_per_game:'Point Differential',epa_per_play:'Offensive EPA / Play',offensive_epa_per_play:'Offensive EPA / Play',def_success_rate:'Defensive Success Rate',defensive_success_rate:'Defensive Success Rate',third_down_conversion_rate:'3rd Down Conversion %',third_down_rate:'3rd Down Conversion %',yards_per_play:'Yards / Play',turnover_margin_per_game:'Turnover Margin',yards_per_game:'Yards / Game',time_of_possession_seconds:'Time of Possession',fourth_down_conversion_rate:'4th Down Conversion %',fourth_down_rate:'4th Down Conversion %',penalty_yards_per_game:'Penalty Yards / Game',penalties_per_game:'Penalties / Game'};const suffixes:Record<string,string>={_l3:' · Last 3',_l5:' · Last 5',_l8:' · Last 8',_ewm:' · Recent EWM'};const suffix=Object.keys(suffixes).find(s=>k.endsWith(s));const root=suffix?k.slice(0,-suffix.length):k;return (known[root]||root.replace(/_/g,' '))+(suffix?suffixes[suffix]:'')}
 function direction(k:string){return /allowed|against|penalt|interception|sack_allowed|pressure_allowed|turnover_rate|^def_success_rate/.test(k)?-1:1}
 const num=(x:string)=>x===''?NaN:Number(x);
+const canon=(team:string)=>team==='WSH'?'WAS':team==='LAR'?'LA':team;
+let scheduleCache2026:Promise<any[]>|undefined;
 async function schedule2026(week:number){const url='https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?dates=2026&seasontype=2&week='+week;const res=await fetch(url,{next:{revalidate:1800}});if(!res.ok)throw Error('2026 schedule unavailable');const json=await res.json();return (json.events||[]).map((event:any)=>{const competition=event.competitions?.[0];const competitors=competition?.competitors||[];const home=competitors.find((x:any)=>x.homeAway==='home');const away=competitors.find((x:any)=>x.homeAway==='away');if(!home||!away)return null;const finished=event.status?.type?.completed===true;const homeScore=finished?Number(home.score):null;const awayScore=finished?Number(away.score):null;const winner=finished&&homeScore!==null&&awayScore!==null&&Number.isFinite(homeScore)&&Number.isFinite(awayScore)&&homeScore!==awayScore?(homeScore>awayScore?home.team.abbreviation:away.team.abbreviation):null;return {game_id:String(event.id),season:2026,week,date:event.date,home:home.team.abbreviation,away:away.team.abbreviation,homeScore:homeScore===null?'':String(homeScore),awayScore:awayScore===null?'':String(awayScore),winner}}).filter(Boolean)}
 
+async function fullSchedule2026(){if(!scheduleCache2026)scheduleCache2026=Promise.all(Array.from({length:18},(_,i)=>schedule2026(i+1))).then(x=>x.flat()).catch(e=>{scheduleCache2026=undefined;throw e});return scheduleCache2026}
+
 export async function GET(req:NextRequest){try{const week=Number(req.nextUrl.searchParams.get('week'));if(req.nextUrl.searchParams.get('season')==='2026'&&Number.isInteger(week)&&week>=1&&week<=18){const games=await schedule2026(week);return NextResponse.json({schedule:games})}const d=await load();return NextResponse.json({stats:d.stats.map(k=>({key:k,label:label(k),direction:direction(k),common:/point_differential|epa_per_play|def_success_rate|third_down|yards_per_play|turnover_margin|yards_per_game|time_of_possession|fourth_down|penalty/.test(k)})),seasons:d.seasons,games:d.games.length,teamRows:d.team.length})}catch(e){return NextResponse.json({error:String(e)},{status:500})}}
-export async function POST(req:NextRequest){try{const payload=await req.json();const d=await load();const active=(payload.weights||{}) as Record<string,number>;const keys=Object.keys(active).filter(k=>d.stats.includes(k)&&Number(active[k])>0);if(!keys.length)return NextResponse.json({error:'Choose at least one available statistic.'},{status:400});const weightTotal=keys.reduce((s,k)=>s+Number(active[k]),0);// Preseason carryover: Week 1 uses last season's completed average; weeks 2-4
-// blend that average with current-season pregame observations (75/50/25%).
-// By Week 5 only current-season data is used. No current game enters its own rating.
-const byTeam=new Map<string,Map<number,Row[]>>();
-for(const row of d.team){const season=Number(row.season);let seasons=byTeam.get(row.team);if(!seasons){seasons=new Map();byTeam.set(row.team,seasons)}const arr=seasons.get(season)||[];arr.push(row);seasons.set(season,arr)}
-const buckets=new Map<string,{game:string;team:string;season:string;week:string;values:Record<string,number>}[]>();
-for(const [team,seasonRows] of byTeam){for(const arr of seasonRows.values())arr.sort((a,b)=>(a.game_date||'').localeCompare(b.game_date||'')||(a.game_id||'').localeCompare(b.game_id||''));
-for(const [season,arr] of seasonRows){
- const priorRows=seasonRows.get(season-1)||[];
- const prior:Record<string,number>={};
- for(const k of keys){const valid=priorRows.map(r=>num(r[k])).filter(Number.isFinite);if(valid.length)prior[k]=valid.reduce((a,b)=>a+b,0)/valid.length}
- const sums:Record<string,number>={},counts:Record<string,number>={};
- for(const row of arr){const values:Record<string,number>={};const week=Number(row.week);
- const previousWeight=Math.max(0,Math.min(1,(5-week)/4));
- for(const k of keys){const value=num(row[k]);const rolling=/(_l3|_l5|_l8|_ewm)$/.test(k);
- const current=rolling?value:(counts[k]||0)>0?sums[k]/counts[k]:NaN;
- const old=prior[k];
- values[k]=Number.isFinite(old)&&previousWeight>0
-   ? Number.isFinite(current)?previousWeight*old+(1-previousWeight)*current:old
-   : current;
- if(Number.isFinite(value)){sums[k]=(sums[k]||0)+value;counts[k]=(counts[k]||0)+1}}
- const bucket=row.season+'|'+row.week;const list=buckets.get(bucket)||[];
- list.push({game:row.game_id,team,season:row.season,week:row.week,values});buckets.set(bucket,list)
+export async function POST(req:NextRequest){try{
+ const payload=await req.json();const d=await load();const active=(payload.weights||{}) as Record<string,number>;
+ const keys=Object.keys(active).filter(k=>d.stats.includes(k)&&Number(active[k])>0);
+ if(!keys.length)return NextResponse.json({error:'Choose at least one available statistic.'},{status:400});
+ const weightTotal=keys.reduce((sum,k)=>sum+Number(active[k]),0);
+ const start=Number(payload.start||d.seasons[0]),end=Number(payload.end||d.seasons[d.seasons.length-1]);
+
+ // Index team-game observations. A prediction no longer depends on a row existing
+ // for the game being predicted: it is built from that team's PRIOR rows.
+ const byTeam=new Map<string,Map<number,Row[]>>();
+ for(const row of d.team){const team=canon(row.team);const season=Number(row.season);let seasons=byTeam.get(team);if(!seasons){seasons=new Map();byTeam.set(team,seasons)}const arr=seasons.get(season)||[];arr.push(row);seasons.set(season,arr)}
+ for(const seasons of byTeam.values())for(const arr of seasons.values())arr.sort((a,b)=>(a.game_date||'').localeCompare(b.game_date||'')||Number(a.week)-Number(b.week));
+
+ const gameRows:any[]=d.games.filter(g=>num(g.season)>=start&&num(g.season)<=end).map(g=>({
+   game_id:g.game_id,season:Number(g.season),week:Number(g.week),date:g.game_date,
+   home:g.home_team,away:g.away_team,homeScore:g.home_score,awayScore:g.away_score,
+   margin:num(g.home_margin)
+ }));
+ // The permanent repository export can lag the live season. For 2026, use the
+ // complete schedule, while model features still come only from repository team data.
+ if(start<=2026&&end>=2026){const live=await fullSchedule2026();const historical=gameRows.filter(g=>g.season!==2026);gameRows.length=0;gameRows.push(...historical,...live.map((g:any)=>({game_id:g.game_id,season:2026,week:g.week,date:g.date,home:g.home,away:g.away,homeScore:g.homeScore,awayScore:g.awayScore,margin:g.winner?(Number(g.homeScore)-Number(g.awayScore)):NaN})))}
+
+ const priorValues=(teamRaw:string,season:number,week:number,date:string)=>{
+   const seasons=byTeam.get(canon(teamRaw));if(!seasons)return null;
+   const currentRows=(seasons.get(season)||[]).filter(r=>{
+     if(date&&r.game_date)return r.game_date<date;
+     return Number(r.week)<week;
+   });
+   const previousRows=seasons.get(season-1)||[];
+   const previousWeight=Math.max(0,Math.min(1,(5-week)/4)); // W1 100%, W2 75%, W3 50%, W4 25%, W5+ 0
+   const values:Record<string,number>={};
+   for(const k of keys){
+     const rolling=/(_l3|_l5|_l8|_ewm)$/.test(k);
+     const currentValid=currentRows.map(r=>num(r[k])).filter(Number.isFinite);
+     const previousValid=previousRows.map(r=>num(r[k])).filter(Number.isFinite);
+     const current=rolling?(currentValid.length?currentValid[currentValid.length-1]:NaN):(currentValid.length?currentValid.reduce((a,b)=>a+b,0)/currentValid.length:NaN);
+     const previous=rolling?(previousValid.length?previousValid[previousValid.length-1]:NaN):(previousValid.length?previousValid.reduce((a,b)=>a+b,0)/previousValid.length:NaN);
+     if(previousWeight>0&&Number.isFinite(previous))values[k]=Number.isFinite(current)?previousWeight*previous+(1-previousWeight)*current:previous;
+     else if(Number.isFinite(current))values[k]=current;
+     else if(Number.isFinite(previous))values[k]=previous; // data-gap fallback, never future data
+     else return null;
+   }
+   return values;
+ };
+
+ type Entry={game:any;side:'home'|'away';team:string;values:Record<string,number>};
+ const buckets=new Map<string,Entry[]>();
+ for(const game of gameRows){const bucket=game.season+'|'+game.week;const list=buckets.get(bucket)||[];
+   const hv=priorValues(game.home,game.season,game.week,game.date);const av=priorValues(game.away,game.season,game.week,game.date);
+   if(hv)list.push({game,side:'home',team:game.home,values:hv});if(av)list.push({game,side:'away',team:game.away,values:av});buckets.set(bucket,list)
  }
-}}
-const ratings=new Map<string,number>();for(const rows of buckets.values()){const moments:Record<string,{mean:number;sd:number}>={};for(const k of keys){const v=rows.map(x=>x.values[k]).filter(Number.isFinite);const mean=v.reduce((a,b)=>a+b,0)/v.length;const sd=Math.sqrt(v.reduce((a,b)=>a+(b-mean)**2,0)/v.length);moments[k]={mean,sd}}for(const row of rows){let rating=0,valid=false;for(const k of keys){const x=row.values[k],m=moments[k];if(Number.isFinite(x)&&Number.isFinite(m.sd)){rating+=(m.sd>0?(x-m.mean)/m.sd:0)*direction(k)*active[k]/weightTotal;valid=true}}if(valid)ratings.set(row.game+'|'+row.team,rating)}}const start=Number(payload.start||d.seasons[0]),end=Number(payload.end||d.seasons[d.seasons.length-1]);const rows=d.games.filter(g=>num(g.season)>=start&&num(g.season)<=end).map(g=>{const home=ratings.get(g.game_id+'|'+g.home_team),away=ratings.get(g.game_id+'|'+g.away_team);const rated=home!==undefined&&away!==undefined;const edge=rated?home-away:0;const margin=num(g.home_margin);const pick=rated?(edge>=0?g.home_team:g.away_team):null;const winner=Number.isFinite(margin)&&margin!==0?(margin>0?g.home_team:g.away_team):null;return {game_id:g.game_id,season:Number(g.season),week:Number(g.week),date:g.game_date,home:g.home_team,away:g.away_team,homeScore:g.home_score,awayScore:g.away_score,homeRating:home,awayRating:away,edge,pick,winner,correct:winner&&pick?pick===winner:null}});const finished=rows.filter(x=>x.correct!==null);const seasons=d.seasons.filter(s=>s>=start&&s<=end).map(season=>{const g=finished.filter(x=>x.season===season);return {season,games:g.length,wins:g.filter(x=>x.correct).length,accuracy:g.length?100*g.filter(x=>x.correct).length/g.length:0}});return NextResponse.json({games:rows,summary:seasons,record:{games:finished.length,wins:finished.filter(x=>x.correct).length,accuracy:finished.length?100*finished.filter(x=>x.correct).length/finished.length:0},stats:keys})}catch(e){return NextResponse.json({error:String(e)},{status:500})}}
+ const ratings=new Map<string,number>();
+ for(const entries of buckets.values()){
+   const moments:Record<string,{mean:number;sd:number}>={};
+   for(const k of keys){const vals=entries.map(e=>e.values[k]).filter(Number.isFinite);const mean=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:NaN;const sd=vals.length?Math.sqrt(vals.reduce((a,b)=>a+(b-mean)**2,0)/vals.length):NaN;moments[k]={mean,sd}}
+   for(const e of entries){let rating=0;let complete=true;for(const k of keys){const x=e.values[k],m=moments[k];if(!Number.isFinite(x)||!Number.isFinite(m.mean)||!Number.isFinite(m.sd)){complete=false;break}rating+=(m.sd>0?(x-m.mean)/m.sd:0)*direction(k)*Number(active[k])/weightTotal}if(complete)ratings.set(e.game.game_id+'|'+e.side,rating)}
+ }
+ const rows=gameRows.map(g=>{const home=ratings.get(g.game_id+'|home'),away=ratings.get(g.game_id+'|away');const rated=home!==undefined&&away!==undefined;const edge=rated?home-away:0;const pick=rated?(edge>=0?g.home:g.away):null;const winner=Number.isFinite(g.margin)&&g.margin!==0?(g.margin>0?g.home:g.away):null;return {game_id:g.game_id,season:g.season,week:g.week,date:g.date,home:g.home,away:g.away,homeScore:g.homeScore,awayScore:g.awayScore,homeRating:home,awayRating:away,edge,pick,winner,correct:winner&&pick?canon(pick)===canon(winner):null}});
+ const finished=rows.filter(x=>x.correct!==null);
+ const seasonList=Array.from(new Set(rows.map(x=>x.season))).sort((a,b)=>a-b).map(season=>{const games=finished.filter(x=>x.season===season);return {season,games:games.length,wins:games.filter(x=>x.correct).length,accuracy:games.length?100*games.filter(x=>x.correct).length/games.length:0}});
+ return NextResponse.json({games:rows,summary:seasonList,record:{games:finished.length,wins:finished.filter(x=>x.correct).length,accuracy:finished.length?100*finished.filter(x=>x.correct).length/finished.length:0},stats:keys});
+ }catch(e){return NextResponse.json({error:String(e)},{status:500})}}
