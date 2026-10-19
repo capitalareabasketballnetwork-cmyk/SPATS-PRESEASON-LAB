@@ -1,19 +1,32 @@
 'use client';
-import {useEffect,useState} from 'react';
+import {useState} from 'react';
 import Link from 'next/link';
-import {db} from '../../../lib/supabase';
-type Model={name:string;weights:Record<string,number>};
-type Score={name:string;weights:Record<string,number>;games:number;wins:number;accuracy:number};
+type Period={wins:number;games:number;accuracy:number};
+type Model={name:string;weights:Record<string,number>;train:Period;validation:Period;holdout:Period};
+type Result={models:Model[];evaluated:number;statsConsidered:number;method:string};
+const grade=(accuracy:number)=>accuracy>=60?'strong':accuracy>=55?'moderate':'weak';
+const label=(name:string)=>name.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
 export default function ModelAdvisor(){
- const [models,setModels]=useState<Model[]>([]),[scores,setScores]=useState<Score[]>([]),[busy,setBusy]=useState(false),[error,setError]=useState('');
- useEffect(()=>{let live=true;(async()=>{if(!db){setError('Supabase is not configured.');return}const {data:{user}}=await db.auth.getUser();if(!user){setError('Sign in to view your saved models.');return}const {data,error}=await db.from('football_saved_models').select('name,model_data').eq('user_id',user.id);if(!live)return;if(error){setError(error.message);return}const items=(data||[]).map(r=>({...(r.model_data as Model),name:r.name}));setModels(items);if(!items.length)setError('Save a model in the Football Model Lab to compare its performance.')})();return()=>{live=false}},[]);
- const run=async()=>{setBusy(true);setError('');setScores([]);try{const result:Score[]=[];for(const model of models.slice(0,8)){
- const response=await fetch('/api/football',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({weights:model.weights,start:2023,end:2025})});
- const data=await response.json();if(!response.ok)throw Error(data.error||'Backtest failed');
- result.push({name:model.name,weights:model.weights,games:data.record.games,wins:data.record.wins,accuracy:data.record.accuracy});
- }result.sort((a,b)=>b.accuracy-a.accuracy||b.games-a.games);setScores(result);
+ const [result,setResult]=useState<Result|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[selected,setSelected]=useState(0);
+ const run=async()=>{setBusy(true);setError('');setResult(null);setSelected(0);try{
+ const response=await fetch('/api/football/model-advisor',{method:'POST'});
+ const data=await response.json();if(!response.ok)throw Error(data.error||'Model optimization unavailable');
+ if(!data.models?.length)throw Error('No eligible model combinations were found.');
+ setResult(data);
  }catch(e){setError(String(e))}finally{setBusy(false)}};
- const best=scores[0];return <main className="nfl-scorelab"><div className="nfl-scorelab-top"><Link href="/football">← Football Model Lab</Link><span>SPATS · MODEL ADVISOR</span></div><h1>Model Advisor</h1><p>Automatically compare your saved model weights on the same historical games. The highest backtest accuracy is a starting point for research, not a guaranteed best future model.</p><section className="panel"><h2>Compare saved models</h2><p className="note">Evaluation window: 2023–2025. Compares up to eight saved models and ranks by accuracy. The 2026 season is deliberately excluded so you can check future performance separately.</p><button disabled={busy||!models.length} onClick={()=>void run()}>{busy?'Evaluating models…':'Find my strongest saved model'}</button>{error&&<p className="notice">{error}</p>}</section>
- {best&&<><section className="panel"><h2>Highest-scoring saved model</h2><div className={'nfl-score nfl-quality-'+(best.accuracy>=60?'strong':best.accuracy>=55?'moderate':'weak')}><small>{best.name.toUpperCase()} · 2023–2025 BACKTEST</small><strong>{best.accuracy.toFixed(2)}%</strong><b>{best.wins} correct of {best.games} graded games</b></div><h3>Recommended weights to review</h3><div className="nfl-advisor-weights">{Object.entries(best.weights).filter(([,w])=>w>0).sort((a,b)=>b[1]-a[1]).map(([key,weight])=><div key={key}><span>{key.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</span><strong>{(weight*100).toFixed(1)}%</strong><div className="nfl-advisor-track"><i style={{width:Math.min(100,weight*100)+'%'}}/></div></div>)}</div><p className="note">These are the weights of the best-performing saved model in your comparison, not AI-generated or globally optimized weights. Compare on unseen games before treating them as predictive.</p></section><section className="panel"><h2>All evaluated models</h2><div className="nfl-table"><table><thead><tr><th>Model</th><th>Accuracy</th><th>Record</th></tr></thead><tbody>{scores.map(s=><tr key={s.name}><td>{s.name}</td><td>{s.accuracy.toFixed(2)}%</td><td>{s.wins} / {s.games}</td></tr>)}</tbody></table></div></section></>}
- </main>
+ const best=result?.models[selected];
+ return <main className="nfl-scorelab"><div className="nfl-scorelab-top"><Link href="/football">← Football Model Lab</Link><span>SPATS · MODEL OPTIMIZER</span></div>
+ <h1>AI Model Advisor</h1><p>Discover new NFL models automatically. The optimizer searches combinations of the available statistics and weights, without using any saved user models.</p>
+ <section className="panel"><h2>Find the strongest models</h2><p className="note">The search trains on 2018–2022, ranks candidates on 2023–2024, and reports 2025 as an unseen holdout season. The highest historical accuracy does not guarantee future wins.</p>
+ <button disabled={busy} onClick={()=>void run()}>{busy?'Searching model combinations…':'Find top 5 models'}</button>
+ {busy&&<p className="note">Testing candidate statistics and weights. This may take a little while.</p>}{error&&<p className="notice">{error}</p>}
+ </section>
+ {result&&<><section className="panel"><h2>Top 5 discovered models</h2><p className="note">Evaluated {result.evaluated.toLocaleString()} combinations across {result.statsConsidered} candidate statistics. Ranked by validation accuracy—not by holdout accuracy.</p>
+ <div className="nfl-advisor-top-five">{result.models.map((m,i)=><button key={m.name} className={selected===i?'active':''} onClick={()=>setSelected(i)}><small>#{i+1} · {m.name}</small><strong>{m.validation.accuracy.toFixed(2)}%</strong><span>2023–24 validation</span><small>2025 holdout: {m.holdout.accuracy.toFixed(2)}%</small></button>)}</div>
+ {best&&<><h3>{best.name} · Weight breakdown</h3><div className={'nfl-score nfl-quality-'+grade(best.validation.accuracy)}><small>VALIDATION ACCURACY · 2023–2024</small><strong>{best.validation.accuracy.toFixed(2)}%</strong><b>{best.validation.wins} correct of {best.validation.games} graded games</b></div>
+ <div className="nfl-advisor-periods"><div><small>TRAINING · 2018–2022</small><strong>{best.train.accuracy.toFixed(2)}%</strong><span>{best.train.wins}/{best.train.games} correct</span></div><div><small>VALIDATION · 2023–2024</small><strong>{best.validation.accuracy.toFixed(2)}%</strong><span>{best.validation.wins}/{best.validation.games} correct</span></div><div><small>HOLDOUT · 2025</small><strong>{best.holdout.accuracy.toFixed(2)}%</strong><span>{best.holdout.wins}/{best.holdout.games} correct</span></div></div>
+ <div className="nfl-advisor-weights">{Object.entries(best.weights).filter(([,w])=>w>0).sort((a,b)=>b[1]-a[1]).map(([key,weight])=><div key={key}><span>{label(key)}</span><strong>{(weight*100).toFixed(1)}%</strong><div className="nfl-advisor-track"><i style={{width:Math.min(100,weight*100)+'%'}}/></div></div>)}</div>
+ <button className="secondary" onClick={()=>navigator.clipboard.writeText(JSON.stringify(best.weights,null,2))}>Copy these model weights</button></>}
+ </section><section className="panel"><h2>Comparison table</h2><div className="nfl-table"><table><thead><tr><th>Model</th><th>Training</th><th>Validation</th><th>2025 Holdout</th><th>Active Stats</th></tr></thead><tbody>{result.models.map((m,i)=><tr key={m.name}><td><button className="secondary" onClick={()=>setSelected(i)}>{m.name}</button></td><td>{m.train.accuracy.toFixed(2)}%</td><td>{m.validation.accuracy.toFixed(2)}%</td><td>{m.holdout.accuracy.toFixed(2)}%</td><td>{Object.keys(m.weights).length}</td></tr>)}</tbody></table></div><p className="note">{result.method} This is a heuristic search rather than an exhaustive mathematical proof of the best possible weights. More backtesting is needed before live use.</p></section></>}
+ </main>;
 }
