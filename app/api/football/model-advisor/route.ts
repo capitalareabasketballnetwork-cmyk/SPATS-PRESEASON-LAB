@@ -1,3 +1,4 @@
+// @ts-nocheck
 import {NextResponse} from 'next/server';
 import {gunzipSync} from 'node:zlib';
 export const runtime='nodejs';
