@@ -71,6 +71,8 @@ export async function POST(req:NextRequest){try{
  if(!keys.length)return NextResponse.json({error:'Choose at least one available statistic.'},{status:400});
  const weightTotal=keys.reduce((sum,k)=>sum+Number(active[k]),0);
  const start=Number(payload.start||d.seasons[0]),end=Number(payload.end||d.seasons[d.seasons.length-1]);
+ // Include earlier completed games only to calibrate each pick without seeing its outcome.
+ const calibrationStart=Math.min(start,2015);
 
  // Index team-game observations. A prediction no longer depends on a row existing
  // for the game being predicted: it is built from that team's PRIOR rows.
@@ -78,7 +80,7 @@ export async function POST(req:NextRequest){try{
  for(const row of d.team){const team=canon(row.team);const season=Number(row.season);let seasons=byTeam.get(team);if(!seasons){seasons=new Map();byTeam.set(team,seasons)}const arr=seasons.get(season)||[];arr.push(row);seasons.set(season,arr)}
  for(const seasons of byTeam.values())for(const arr of seasons.values())arr.sort((a,b)=>(a.game_date||'').localeCompare(b.game_date||'')||Number(a.week)-Number(b.week));
 
- const gameRows:any[]=d.games.filter(g=>num(g.season)>=start&&num(g.season)<=end).map(g=>({
+ const gameRows:any[]=d.games.filter(g=>num(g.season)>=calibrationStart&&num(g.season)<=end).map(g=>({
    game_id:g.game_id,season:Number(g.season),week:Number(g.week),date:g.game_date,
    home:g.home_team,away:g.away_team,homeScore:g.home_score,awayScore:g.away_score,
    margin:num(g.home_margin),final:Number.isFinite(num(g.home_margin))
@@ -123,7 +125,22 @@ export async function POST(req:NextRequest){try{
    for(const e of entries){let rating=0;let complete=true;for(const k of keys){const x=e.values[k],m=moments[k];if(!Number.isFinite(x)||!Number.isFinite(m.mean)||!Number.isFinite(m.sd)){complete=false;break}rating+=(m.sd>0?(x-m.mean)/m.sd:0)*direction(k)*Number(active[k])/weightTotal}if(complete)ratings.set(e.game.game_id+'|'+e.side,rating)}
  }
  const rows=gameRows.map(g=>{const home=ratings.get(g.game_id+'|home'),away=ratings.get(g.game_id+'|away');const rated=home!==undefined&&away!==undefined;const edge=rated?home-away:0;const pick=rated?(edge>=0?g.home:g.away):null;const winner=Number.isFinite(g.margin)&&g.margin!==0?(g.margin>0?g.home:g.away):null;return {game_id:g.game_id,season:g.season,week:g.week,date:g.date,home:g.home,away:g.away,homeScore:g.homeScore,awayScore:g.awayScore,final:g.final===true,homeRating:home,awayRating:away,edge,pick,winner,correct:winner&&pick?canon(pick)===canon(winner):null}});
- const finished=rows.filter(x=>x.correct!==null);
- const seasonList=Array.from(new Set(rows.map(x=>x.season))).sort((a,b)=>a-b).map(season=>{const games=finished.filter(x=>x.season===season);return {season,games:games.length,wins:games.filter(x=>x.correct).length,accuracy:games.length?100*games.filter(x=>x.correct).length/games.length:0}});
- return NextResponse.json({games:rows,summary:seasonList,record:{games:finished.length,wins:finished.filter(x=>x.correct).length,accuracy:finished.length?100*finished.filter(x=>x.correct).length/finished.length:0},stats:keys});
+ // Pre-game confidence calibration: use only older completed predictions from this
+ // same model, and weight observations with similar absolute rating edges.
+ // The 30 pseudo-games at 50% dampen small-sample overconfidence.
+ const past:{edge:number;correct:boolean}[]=[];
+ const calibrated=rows.slice().sort((a,b)=>a.season-b.season||a.week-b.week||(a.date||'').localeCompare(b.date||'')).map(g=>{
+   let confidence:number|null=null;
+   if(g.pick&&past.length>=60){
+     const magnitude=Math.abs(g.edge);let sample=0,wins=0;
+     for(const h of past){const weight=Math.exp(-Math.abs(h.edge-magnitude)/0.4);sample+=weight;if(h.correct)wins+=weight}
+     if(sample>=10)confidence=Math.round(1000*(wins+15)/(sample+30))/10;
+   }
+   if(g.correct!==null&&g.pick)past.push({edge:Math.abs(g.edge),correct:g.correct});
+   return {...g,confidence};
+ });
+ const visible=calibrated.filter(g=>g.season>=start&&g.season<=end);
+ const finished=visible.filter(x=>x.correct!==null);
+ const seasonList=Array.from(new Set(visible.map(x=>x.season))).sort((a,b)=>a-b).map(season=>{const games=finished.filter(x=>x.season===season);return {season,games:games.length,wins:games.filter(x=>x.correct).length,accuracy:games.length?100*games.filter(x=>x.correct).length/games.length:0}});
+ return NextResponse.json({games:visible,summary:seasonList,record:{games:finished.length,wins:finished.filter(x=>x.correct).length,accuracy:finished.length?100*finished.filter(x=>x.correct).length/finished.length:0},stats:keys});
  }catch(e){return NextResponse.json({error:String(e)},{status:500})}}
