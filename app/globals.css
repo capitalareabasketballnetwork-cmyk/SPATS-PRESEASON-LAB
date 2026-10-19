@@ -134,3 +134,46 @@
 .nfl-odds-survey button{min-height:42px;white-space:nowrap}
 @media(max-width:900px){.nfl-odds-survey{grid-template-columns:1fr 1fr}.nfl-odds-survey button{grid-column:1/-1}.nfl-odds-summary{grid-template-columns:1fr 1fr}}
 @media(max-width:600px){.nfl-week-summary,.nfl-odds-summary{grid-template-columns:1fr}.nfl-odds-survey{grid-template-columns:1fr}}
+
+/* SPATS results dashboards: a single prominent, accessible performance card. */
+.nfl-week-performance{--accent:#8297b4;--wash:rgba(130,151,180,.12);position:relative;overflow:hidden;margin:20px 0 24px;padding:24px 28px;border:1px solid var(--accent);border-radius:18px;background:linear-gradient(115deg,var(--wash),#101f35 75%);box-shadow:0 16px 40px #030a1850}
+.nfl-performance-strong{--accent:#38c78c;--wash:rgba(28,134,90,.32)}
+.nfl-performance-moderate{--accent:#f5ca65;--wash:rgba(162,121,23,.29)}
+.nfl-performance-weak{--accent:#f47685;--wash:rgba(159,42,62,.32)}
+.nfl-performance-neutral{--accent:#7e96b6;--wash:rgba(64,88,124,.25)}
+.nfl-week-performance-heading,.nfl-odds-performance-head{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:11px;letter-spacing:.12em;font-weight:850;color:#d7e3f2}
+.nfl-week-performance-heading span:last-child{color:var(--accent);background:#08142285;padding:7px 11px;border:1px solid var(--accent);border-radius:100px;letter-spacing:.03em}
+.nfl-week-performance-body{display:flex;align-items:center;gap:34px;margin-top:19px}
+.nfl-week-performance-percent{flex:1;display:flex;flex-direction:column;gap:3px}
+.nfl-week-performance-percent strong{font-size:clamp(45px,7vw,74px);line-height:1;font-weight:900;letter-spacing:-.05em;color:var(--accent);font-variant-numeric:tabular-nums}
+.nfl-week-performance-record{display:flex;flex-direction:column;gap:3px;min-width:190px;padding-left:30px;border-left:1px solid #ffffff33}
+.nfl-week-performance-record strong{font-size:clamp(32px,5vw,52px);line-height:1.15;font-weight:850;color:#f3f6ff;font-variant-numeric:tabular-nums}
+.nfl-week-performance-body small{font-size:11px;letter-spacing:.11em;font-weight:800;color:#b9cbe2}
+.nfl-week-performance-record span{margin-top:6px;font-size:12px;color:#d1dced}
+.nfl-odds-survey{grid-template-columns:minmax(175px,2fr) minmax(100px,1fr) minmax(100px,1fr) minmax(118px,.8fr) auto;gap:14px;padding:20px;border:1px solid #35506f;border-radius:15px;background:linear-gradient(140deg,#182f4b,#10223a)}
+.nfl-odds-survey label{min-width:0;gap:9px;letter-spacing:.025em}
+.nfl-odds-survey select,.nfl-odds-survey input{height:45px;min-height:45px;border:1px solid #536d8d!important;border-radius:10px!important;background-color:#0b1b31!important;color:#f1f6ff!important;padding:0 13px!important;box-shadow:inset 0 1px 3px #0003;outline-offset:2px}
+.nfl-odds-survey select{appearance:none;padding-right:35px!important;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%23f0c776' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;cursor:pointer}
+.nfl-odds-survey select:focus,.nfl-odds-survey input:focus{border-color:#f0c776!important;outline:2px solid #f0c77644}
+.nfl-odds-survey button{height:45px;min-height:45px;border-radius:10px;padding:0 16px;font-weight:800}
+.nfl-unit-label{max-width:175px}
+.nfl-unit-input{position:relative;display:block}
+.nfl-unit-input .nfl-dollar-prefix{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:850;color:#f0c776;pointer-events:none}
+.nfl-unit-input input{padding-left:30px!important;text-align:right;font-variant-numeric:tabular-nums;font-weight:750}
+.nfl-odds-performance{margin:24px 0;border:1px solid #496485;border-radius:18px;overflow:hidden;background:linear-gradient(120deg,#1a3453,#0e1d33);box-shadow:0 16px 45px #030b1950}
+.nfl-odds-performance-head{padding:18px 24px;border-bottom:1px solid #ffffff1c}
+.nfl-odds-performance-head span:last-child{color:#f0c776}
+.nfl-odds-performance-main{display:grid;grid-template-columns:1fr 1fr;padding:26px 24px;gap:25px}
+.nfl-odds-performance-main>div{display:flex;flex-direction:column;gap:9px;min-width:0}
+.nfl-odds-performance-main>div+div{border-left:1px solid #ffffff2b;padding-left:25px}
+.nfl-odds-performance small{font-size:11px;letter-spacing:.1em;color:#afc4de;font-weight:850}
+.nfl-odds-performance-main strong{font-size:clamp(27px,4.2vw,49px);line-height:1.15;font-weight:900;letter-spacing:-.03em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.nfl-odds-risk strong{color:#f6f8ff}
+.nfl-profit-positive strong{color:#6ce3aa}
+.nfl-profit-negative strong{color:#ff8293}
+.nfl-profit-even strong{color:#f0c776}
+.nfl-odds-performance-footer{display:flex;gap:35px;padding:17px 24px;background:#08172a8c;border-top:1px solid #ffffff1c}
+.nfl-odds-performance-footer>div{display:flex;align-items:baseline;gap:11px}
+.nfl-odds-performance-footer strong{font-size:19px;font-weight:850;color:#f4f7fd;font-variant-numeric:tabular-nums}
+@media(max-width:950px){.nfl-odds-survey{grid-template-columns:repeat(2,minmax(0,1fr))}.nfl-odds-survey button{grid-column:1/-1}.nfl-unit-label{max-width:none}}
+@media(max-width:560px){.nfl-week-performance{padding:20px}.nfl-week-performance-body{gap:18px}.nfl-week-performance-record{min-width:0;padding-left:17px}.nfl-week-performance-record span{font-size:11px}.nfl-odds-survey{grid-template-columns:1fr}.nfl-odds-performance-main{grid-template-columns:1fr;gap:18px}.nfl-odds-performance-main>div+div{border-left:0;border-top:1px solid #ffffff2b;padding:18px 0 0}.nfl-odds-performance-footer{gap:25px;flex-wrap:wrap}}
