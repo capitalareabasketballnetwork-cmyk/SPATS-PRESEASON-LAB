@@ -92,3 +92,15 @@
 .spats-account-bar{display:flex;justify-content:flex-end;align-items:center;gap:14px;padding:6px max(22px,calc((100vw - 1500px)/2));background:#0b1729;border-bottom:1px solid #223750;color:#aebfd8;font-size:12px}
 .spats-account-bar button{color:#f0c778;background:transparent;border:0;text-decoration:underline}
 @media(max-width:540px){.spats-auth-card{padding:25px 18px}.spats-auth-card h1{font-size:29px}.spats-auth-mark{font-size:36px}.spats-account-bar{padding:8px 15px}}
+
+/* Game-by-game prediction outcomes: full green/red outlined row boxes. */
+.nfl-table tr.nfl-game-result-win td{background:#103c2b;border-top:1px solid #279565;border-bottom:1px solid #279565}
+.nfl-table tr.nfl-game-result-loss td{background:#481c26;border-top:1px solid #c94d5c;border-bottom:1px solid #c94d5c}
+.nfl-table tr.nfl-game-result-win td:first-child{border-left:2px solid #36b77e;border-radius:7px 0 0 7px}
+.nfl-table tr.nfl-game-result-win td:last-child{border-right:2px solid #36b77e;border-radius:0 7px 7px 0}
+.nfl-table tr.nfl-game-result-loss td:first-child{border-left:2px solid #f26b79;border-radius:7px 0 0 7px}
+.nfl-table tr.nfl-game-result-loss td:last-child{border-right:2px solid #f26b79;border-radius:0 7px 7px 0}
+.nfl-table:has(.nfl-game-result-win,.nfl-game-result-loss) table{border-collapse:separate;border-spacing:0 5px}
+.nfl-result-badge{display:inline-block;padding:5px 8px;border-radius:6px;font-size:12px;font-weight:800;white-space:nowrap}
+.nfl-result-correct{color:#9effca;background:#196144}
+.nfl-result-incorrect{color:#ffb1b6;background:#762632}
