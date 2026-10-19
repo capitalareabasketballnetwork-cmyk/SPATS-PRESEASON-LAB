@@ -306,3 +306,35 @@
 .nfl-confidence-selected{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap;margin-top:12px;padding-top:10px;border-top:1px solid #45617f;color:#dfeaf8;font-size:13px;font-weight:700}
 .nfl-confidence-selected strong{color:#f2ce79;font-size:20px;font-variant-numeric:tabular-nums}
 .nfl-confidence-selected span{color:#afc3dd;font-size:12px;font-weight:500}
+
+/* Advisor saved-model origin and save action */
+.nfl-ai-star{color:#f4d17b;font-size:19px;vertical-align:-1px;text-shadow:0 0 12px #f4d17b55}
+.nfl-advisor-save{margin-top:22px;padding:19px 20px;border:1px solid #526c8f;border-radius:12px;background:#172e4a}
+.nfl-advisor-save>label{display:block;color:#f0d28b;font-size:13px;font-weight:800;margin-bottom:9px}
+.nfl-advisor-save-row{display:flex;gap:12px;align-items:stretch}
+.nfl-advisor-save-row input{min-width:0;flex:1}
+.nfl-advisor-save-row button{min-height:44px;white-space:nowrap}
+.nfl-advisor-save-success{color:#a5f1cb;font-weight:750;margin-top:10px}
+@media(max-width:620px){.nfl-advisor-save-row{flex-direction:column}.nfl-advisor-save-row button{width:100%}}
+
+/* Score Lab: tidy 4-column survey, market choice, full-width action */
+.nfl-scorelab-survey{grid-template-columns:minmax(190px,2fr) repeat(2,minmax(95px,1fr)) minmax(150px,1.15fr);gap:15px;align-items:end;margin:18px 0 13px}
+.nfl-scorelab-survey>label{min-width:0}
+.nfl-scorelab-survey select{min-height:43px}
+.nfl-scorelab-survey .nfl-unit-input{min-height:43px;align-items:center}
+.nfl-scorelab-survey .nfl-unit-input input{min-height:41px}
+.nfl-scorelab-config-actions{display:flex;align-items:end;justify-content:space-between;gap:18px;margin-top:16px}
+.nfl-scorelab-market-picker{display:flex;flex-direction:column;gap:7px}
+.nfl-scorelab-market-picker>span{color:#c7d5e8;font-size:12px;font-weight:800}
+.nfl-scorelab-market-picker .nfl-scorelab-switch{margin:0}
+.nfl-scorelab-market-picker .nfl-scorelab-switch button{min-height:44px;white-space:nowrap}
+.nfl-scorelab-compute{min-height:45px;padding:11px 28px;font-size:14px;font-weight:850;white-space:nowrap}
+@media(max-width:880px){.nfl-scorelab-survey{grid-template-columns:repeat(2,minmax(0,1fr))}.nfl-scorelab-config-actions{align-items:stretch;flex-direction:column}.nfl-scorelab-compute{width:100%}}
+@media(max-width:510px){.nfl-scorelab-survey{grid-template-columns:1fr}.nfl-scorelab-market-picker .nfl-scorelab-switch{display:grid;grid-template-columns:1fr 1fr}.nfl-scorelab-market-picker .nfl-scorelab-switch button{padding:10px 8px;white-space:normal}}
+
+/* The pointer marks the most profitable historical confidence threshold, not a forecast. */
+.nfl-confidence-optimum{height:72px;position:relative;margin:2px 0 8px;border-bottom:1px dashed #47678a}
+.nfl-confidence-optimum-pointer{position:absolute;top:0;transform:translateX(-50%);font-size:19px;line-height:1;color:#f3d078}
+.nfl-confidence-optimum-label{position:absolute;top:23px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:3px;min-width:160px;text-align:center;white-space:nowrap}
+.nfl-confidence-optimum-label strong{font-size:12px;color:#f3d078}
+.nfl-confidence-optimum-label small{font-size:11px;color:#d5e4f6}
