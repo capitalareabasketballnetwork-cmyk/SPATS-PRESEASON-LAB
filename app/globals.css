@@ -359,3 +359,26 @@
 @media(max-width:650px){.spats-signup-names,.spats-profile-grid{grid-template-columns:1fr}.nfl-market-picker{gap:5px}.nfl-market-picker button{padding:10px 6px;font-size:12px}.sports-nav-profile{padding:8px 11px;font-size:12px}}
 
 @media(max-width:800px){.sports-nav-profile{order:1;margin-left:auto}.sports-nav-links{order:2}}
+
+/* Compact AI Advisor entry with a subtle blurred spectral glow. */
+.nfl-ai-advisor-wrap{display:flex;justify-content:flex-start;margin:16px 0 19px}
+.nfl-ai-advisor-button{position:relative;isolation:isolate;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:39px;padding:9px 16px;border:1.5px solid transparent;border-radius:11px;background:linear-gradient(#142943,#142943) padding-box,conic-gradient(from 35deg,#e28ed8,#77a5f9,#7de0cd,#f0cb76,#e28ed8) border-box;color:#f8f3ff;font-size:13px;font-weight:850;line-height:1.1;text-decoration:none;white-space:nowrap;box-shadow:0 1px 9px #111e3680;transition:transform .2s,box-shadow .2s}
+.nfl-ai-advisor-button::before{content:"";position:absolute;z-index:-1;inset:-5px;border-radius:14px;background:conic-gradient(from 35deg,#e28ed8,#77a5f9,#7de0cd,#f0cb76,#e28ed8);filter:blur(10px);opacity:.56;transition:opacity .2s,filter .2s;pointer-events:none}
+.nfl-ai-advisor-button>span{color:#eac8ff;font-size:19px;line-height:1}
+.nfl-ai-advisor-button:hover{color:#fff;transform:translateY(-1px);box-shadow:0 4px 15px #111e36aa}
+.nfl-ai-advisor-button:hover::before,.nfl-ai-advisor-button:focus-visible::before{opacity:.85;filter:blur(12px)}
+.nfl-ai-advisor-button:focus-visible{outline:2px solid #e2d6ff;outline-offset:5px}
+
+/* Betting markets: three cohesive segmented selection cards. */
+.nfl-market-picker{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:20px 0 19px;padding:7px;border:1px solid #3b5778;border-radius:15px;background:#101f36}
+.nfl-market-picker button{position:relative;display:flex;align-items:center;justify-content:center;gap:12px;min-width:0;min-height:64px;padding:12px 15px;border:1px solid transparent;border-radius:11px;background:#1c304c;color:#b9cee8;font-size:14px;font-weight:800;letter-spacing:.01em;cursor:pointer;box-shadow:none;transition:background .2s,color .2s,border-color .2s,transform .2s,box-shadow .2s}
+.nfl-market-picker button:hover{background:#284262;color:#fff;border-color:#54799f}
+.nfl-market-picker button.active{background:linear-gradient(135deg,#344b72,#263d61);color:#fff;border-color:#e6c47a;box-shadow:inset 0 0 0 1px #e6c47a33,0 3px 12px #0003}
+.nfl-market-symbol{display:grid;place-items:center;flex:0 0 33px;width:33px;height:33px;border:1px solid #4b6787;border-radius:9px;background:#11243f;color:#d5e4f7;font-size:19px;font-weight:800}
+.nfl-market-picker button.active .nfl-market-symbol{border-color:#dcb971;background:#4c4760;color:#ffe3a2}
+.nfl-market-label{flex:0 1 auto;white-space:nowrap}
+.nfl-market-check{margin-left:auto;font-size:15px;color:#58718e}
+.nfl-market-picker button.active .nfl-market-check{color:#f6d38a}
+.nfl-market-disclaimer{margin:15px 0 19px;padding:12px 16px;border-left:3px solid #799ac2;border-radius:8px;background:#182d49;color:#c8d8ed;font-size:13px;line-height:1.55}
+@media(max-width:680px){.nfl-market-picker{gap:5px;padding:5px}.nfl-market-picker button{min-height:57px;padding:9px 6px;gap:6px;font-size:11px;flex-direction:column}.nfl-market-symbol{flex-basis:26px;width:26px;height:26px;font-size:16px}.nfl-market-check{display:none}}
+@media(prefers-reduced-motion:reduce){.nfl-ai-advisor-button,.nfl-ai-advisor-button::before,.nfl-market-picker button{transition:none}}
