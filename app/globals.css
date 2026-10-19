@@ -357,3 +357,5 @@
 .nfl-market-picker button{flex:1;min-height:46px;padding:11px 14px;border:1px solid #57728f;border-radius:10px;background:#192e4a;color:#e7f0fb;font-weight:800}
 .nfl-market-picker button.active{background:#d8b257;color:#14243c;border-color:#e8ca84}
 @media(max-width:650px){.spats-signup-names,.spats-profile-grid{grid-template-columns:1fr}.nfl-market-picker{gap:5px}.nfl-market-picker button{padding:10px 6px;font-size:12px}.sports-nav-profile{padding:8px 11px;font-size:12px}}
+
+@media(max-width:800px){.sports-nav-profile{order:1;margin-left:auto}.sports-nav-links{order:2}}
