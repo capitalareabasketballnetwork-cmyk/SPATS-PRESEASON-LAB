@@ -207,3 +207,14 @@
 .nfl-table tr.nfl-game-result-push td{background:#23344e;border-top:1px solid #68809f;border-bottom:1px solid #68809f}
 .nfl-table tr.nfl-game-result-push td:first-child{border-left:2px solid #91a7c3;border-radius:7px 0 0 7px}
 .nfl-table tr.nfl-game-result-push td:last-child{border-right:2px solid #91a7c3;border-radius:0 7px 7px 0}
+
+/* Completed ties are distinct from incorrect picks and pending games. */
+.nfl-week-row.nfl-week-tie{background:#514019;border-color:#d4a83b}
+.nfl-week-tie .nfl-week-outcome{color:#ffe29a}
+.nfl-tie-score-label{display:inline-block;margin-left:12px;padding:3px 9px;border:1px solid #f5d26c;border-radius:5px;background:#70561d;color:#fff0a6;font-size:12px;vertical-align:middle}
+.nfl-odds-pick-split{display:flex;justify-content:center;gap:0;width:100%;max-width:700px;margin:0 auto;padding:16px 0 22px;border-top:1px solid #ffffff55}
+.nfl-odds-pick-split>div{flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;padding:0 15px}
+.nfl-odds-pick-split>div+div{border-left:1px solid #ffffff55}
+.nfl-odds-pick-split small{font-size:11px;color:#fff;letter-spacing:.09em}
+.nfl-odds-pick-split strong{font-size:clamp(20px,3vw,29px);color:#fff;font-variant-numeric:tabular-nums}
+@media(max-width:560px){.nfl-odds-pick-split>div{padding:0 8px}.nfl-odds-pick-split small{font-size:9px}}
