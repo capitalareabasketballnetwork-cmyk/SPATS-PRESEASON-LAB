@@ -1,0 +1,19 @@
+'use client';
+import {useEffect,useState} from 'react';
+import Link from 'next/link';
+import {db} from '../../../lib/supabase';
+type Model={name:string;weights:Record<string,number>};
+type Score={name:string;weights:Record<string,number>;games:number;wins:number;accuracy:number};
+export default function ModelAdvisor(){
+ const [models,setModels]=useState<Model[]>([]),[scores,setScores]=useState<Score[]>([]),[busy,setBusy]=useState(false),[error,setError]=useState('');
+ useEffect(()=>{let live=true;(async()=>{if(!db){setError('Supabase is not configured.');return}const {data:{user}}=await db.auth.getUser();if(!user){setError('Sign in to view your saved models.');return}const {data,error}=await db.from('football_saved_models').select('name,model_data').eq('user_id',user.id);if(!live)return;if(error){setError(error.message);return}const items=(data||[]).map(r=>({...(r.model_data as Model),name:r.name}));setModels(items);if(!items.length)setError('Save a model in the Football Model Lab to compare its performance.')})();return()=>{live=false}},[]);
+ const run=async()=>{setBusy(true);setError('');setScores([]);try{const result:Score[]=[];for(const model of models.slice(0,8)){
+ const response=await fetch('/api/football',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({weights:model.weights,start:2023,end:2025})});
+ const data=await response.json();if(!response.ok)throw Error(data.error||'Backtest failed');
+ result.push({name:model.name,weights:model.weights,games:data.record.games,wins:data.record.wins,accuracy:data.record.accuracy});
+ }result.sort((a,b)=>b.accuracy-a.accuracy||b.games-a.games);setScores(result);
+ }catch(e){setError(String(e))}finally{setBusy(false)}};
+ const best=scores[0];return <main className="nfl-scorelab"><div className="nfl-scorelab-top"><Link href="/football">← Football Model Lab</Link><span>SPATS · MODEL ADVISOR</span></div><h1>Model Advisor</h1><p>Automatically compare your saved model weights on the same historical games. The highest backtest accuracy is a starting point for research, not a guaranteed best future model.</p><section className="panel"><h2>Compare saved models</h2><p className="note">Evaluation window: 2023–2025. Compares up to eight saved models and ranks by accuracy. The 2026 season is deliberately excluded so you can check future performance separately.</p><button disabled={busy||!models.length} onClick={()=>void run()}>{busy?'Evaluating models…':'Find my strongest saved model'}</button>{error&&<p className="notice">{error}</p>}</section>
+ {best&&<><section className="panel"><h2>Highest-scoring saved model</h2><div className={'nfl-score nfl-quality-'+(best.accuracy>=60?'strong':best.accuracy>=55?'moderate':'weak')}><small>{best.name.toUpperCase()} · 2023–2025 BACKTEST</small><strong>{best.accuracy.toFixed(2)}%</strong><b>{best.wins} correct of {best.games} graded games</b></div><h3>Recommended weights to review</h3><div className="nfl-advisor-weights">{Object.entries(best.weights).filter(([,w])=>w>0).sort((a,b)=>b[1]-a[1]).map(([key,weight])=><div key={key}><span>{key.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</span><strong>{(weight*100).toFixed(1)}%</strong><div className="nfl-advisor-track"><i style={{width:Math.min(100,weight*100)+'%'}}/></div></div>)}</div><p className="note">These are the weights of the best-performing saved model in your comparison, not AI-generated or globally optimized weights. Compare on unseen games before treating them as predictive.</p></section><section className="panel"><h2>All evaluated models</h2><div className="nfl-table"><table><thead><tr><th>Model</th><th>Accuracy</th><th>Record</th></tr></thead><tbody>{scores.map(s=><tr key={s.name}><td>{s.name}</td><td>{s.accuracy.toFixed(2)}%</td><td>{s.wins} / {s.games}</td></tr>)}</tbody></table></div></section></>}
+ </main>
+}
