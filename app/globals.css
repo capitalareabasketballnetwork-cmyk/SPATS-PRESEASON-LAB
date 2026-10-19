@@ -302,3 +302,7 @@
 @media(min-width:900px){.nfl-week-row{grid-template-columns:minmax(145px,2fr) minmax(80px,1fr) minmax(95px,1fr) minmax(125px,1fr) minmax(110px,1fr)}}
 @media(min-width:661px) and (max-width:899px){.nfl-week-row{grid-template-columns:repeat(3,minmax(0,1fr))}.nfl-week-outcome{grid-column:2/4;text-align:right}}
 @media(max-width:660px){.nfl-week-confidence{align-items:flex-start;text-align:left}.nfl-week-outcome{grid-column:2;align-self:center}}
+
+.nfl-confidence-selected{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap;margin-top:12px;padding-top:10px;border-top:1px solid #45617f;color:#dfeaf8;font-size:13px;font-weight:700}
+.nfl-confidence-selected strong{color:#f2ce79;font-size:20px;font-variant-numeric:tabular-nums}
+.nfl-confidence-selected span{color:#afc3dd;font-size:12px;font-weight:500}
