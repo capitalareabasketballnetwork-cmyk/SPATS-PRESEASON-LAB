@@ -129,16 +129,22 @@ export async function POST(req:NextRequest){try{
  // same model, and weight observations with similar absolute rating edges.
  // The 30 pseudo-games at 50% dampen small-sample overconfidence.
  const past:{edge:number;correct:boolean}[]=[];
- const calibrated=rows.slice().sort((a,b)=>a.season-b.season||a.week-b.week||(a.date||'').localeCompare(b.date||'')).map(g=>{
-   let confidence:number|null=null;
-   if(g.pick&&past.length>=60){
-     const magnitude=Math.abs(g.edge);let sample=0,wins=0;
-     for(const h of past){const weight=Math.exp(-Math.abs(h.edge-magnitude)/0.4);sample+=weight;if(h.correct)wins+=weight}
-     if(sample>=10)confidence=Math.round(1000*(wins+15)/(sample+30))/10;
+ const sorted=rows.slice().sort((a,b)=>a.season-b.season||a.week-b.week||(a.date||'').localeCompare(b.date||''));
+ const calibrated:(typeof rows[number]&{confidence:number|null})[]=[];
+ // All games in the same week are evaluated before their results enter history.
+ // This prevents early Sunday finals from leaking into other pregame estimates.
+ for(let i=0;i<sorted.length;){
+   let j=i+1;while(j<sorted.length&&sorted[j].season===sorted[i].season&&sorted[j].week===sorted[i].week)j++;
+   for(let k=i;k<j;k++){const g=sorted[k];let confidence:number|null=null;
+     if(g.pick&&past.length>=60){const magnitude=Math.abs(g.edge);let sample=0,wins=0;
+       for(const h of past){const weight=Math.exp(-Math.abs(h.edge-magnitude)/0.4);sample+=weight;if(h.correct)wins+=weight}
+       if(sample>=10)confidence=Math.round(1000*(wins+15)/(sample+30))/10;
+     }
+     calibrated.push({...g,confidence});
    }
-   if(g.correct!==null&&g.pick)past.push({edge:Math.abs(g.edge),correct:g.correct});
-   return {...g,confidence};
- });
+   for(let k=i;k<j;k++){const g=sorted[k];if(g.correct!==null&&g.pick)past.push({edge:Math.abs(g.edge),correct:g.correct})}
+   i=j;
+ }
  const visible=calibrated.filter(g=>g.season>=start&&g.season<=end);
  const finished=visible.filter(x=>x.correct!==null);
  const seasonList=Array.from(new Set(visible.map(x=>x.season))).sort((a,b)=>a-b).map(season=>{const games=finished.filter(x=>x.season===season);return {season,games:games.length,wins:games.filter(x=>x.correct).length,accuracy:games.length?100*games.filter(x=>x.correct).length/games.length:0}});
