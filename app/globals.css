@@ -104,3 +104,20 @@
 .nfl-result-badge{display:inline-block;padding:5px 8px;border-radius:6px;font-size:12px;font-weight:800;white-space:nowrap}
 .nfl-result-correct{color:#9effca;background:#196144}
 .nfl-result-incorrect{color:#ffb1b6;background:#762632}
+
+/* Full-width Week Explorer list with outcome colors. */
+.nfl-week-list{display:flex;flex-direction:column;gap:8px;margin-top:18px}
+.nfl-week-row{display:grid;grid-template-columns:minmax(145px,2fr) minmax(80px,1fr) minmax(110px,1fr) minmax(135px,1fr);align-items:center;gap:15px;padding:15px 18px;border:1px solid #3d5574;border-radius:11px;background:#172b46}
+.nfl-week-row.nfl-week-correct{background:#103d2b;border-color:#319a69}
+.nfl-week-row.nfl-week-incorrect{background:#481e29;border-color:#d15465}
+.nfl-week-row.nfl-week-neutral{background:#172b46;border-color:#3d5574}
+.nfl-week-matchup,.nfl-week-pick{display:flex;flex-direction:column;gap:5px}
+.nfl-week-matchup strong{font-size:16px}
+.nfl-week-matchup small,.nfl-week-pick small{color:#b2c5df;font-size:11px}
+.nfl-week-score{font-weight:700;color:#e6eef9}
+.nfl-week-pick b{color:#f0ca78}
+.nfl-week-outcome{font-size:12px;font-weight:800;text-align:right}
+.nfl-week-correct .nfl-week-outcome{color:#96ffd0}
+.nfl-week-incorrect .nfl-week-outcome{color:#ffadb9}
+.nfl-week-neutral .nfl-week-outcome{color:#b6c7dc}
+@media(max-width:660px){.nfl-week-row{grid-template-columns:1fr 1fr;gap:12px;padding:12px}.nfl-week-outcome{text-align:right}.nfl-week-score{text-align:right}}
