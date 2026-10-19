@@ -251,3 +251,20 @@
 .nfl-advisor-track{grid-column:1/-1;height:7px;background:#263d5a;border-radius:8px;overflow:hidden}
 .nfl-advisor-track i{display:block;height:100%;background:#e3bd63;border-radius:8px}
 @media(max-width:700px){.nfl-feature-links,.nfl-odds-highlights,.nfl-advisor-weights{grid-template-columns:1fr}.nfl-feature-links a{flex-wrap:wrap}.nfl-scorelab{padding:20px 13px 50px}}
+
+/* Compact, unified Odds Calculator performance summary */
+.nfl-odds-card{padding:20px 24px 18px;gap:5px}
+.nfl-odds-card>strong{font-size:clamp(32px,4.5vw,48px)}
+.nfl-odds-card>.nfl-odds-breakdown{margin:10px auto 0;padding:13px 0 15px}
+.nfl-odds-card>.nfl-odds-breakdown>div{gap:5px}
+.nfl-odds-card>.nfl-odds-pick-split{padding:12px 0 14px}
+.nfl-odds-card>.nfl-odds-pick-split>div{gap:4px}
+.nfl-odds-card>.nfl-odds-pick-split strong{font-size:21px}
+.nfl-odds-card>.nfl-odds-highlights{width:100%;max-width:700px;gap:10px;margin:0 auto;padding:13px 0 0;border-top:1px solid #ffffff55}
+.nfl-odds-card .nfl-odds-highlights>div{padding:11px 13px;border-radius:9px;text-align:left}
+.nfl-odds-card .nfl-odds-highlights small{font-size:10px;line-height:1.35}
+.nfl-odds-card .nfl-odds-highlights strong{font-size:18px;margin:7px 0 3px}
+.nfl-odds-card .nfl-odds-highlights p{font-size:12px;margin:3px 0 6px}
+.nfl-odds-card .nfl-odds-highlights b{font-size:12px}
+.nfl-odds-card>.nfl-odds-verdict{width:100%;max-width:700px;background:transparent;border:0;border-top:1px solid #ffffff55;border-radius:0;padding:12px 6px 0;margin:12px auto 0!important;font-size:13px;line-height:1.5}
+@media(max-width:560px){.nfl-odds-card{padding:16px 12px}.nfl-odds-card>.nfl-odds-highlights{grid-template-columns:1fr}.nfl-odds-card .nfl-odds-highlights>div{padding:10px 12px}}
