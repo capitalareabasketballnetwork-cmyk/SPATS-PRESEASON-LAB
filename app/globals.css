@@ -297,3 +297,8 @@
 .nfl-confidence-scale{display:flex;justify-content:space-between;color:#b4c9e3;font-size:11px}
 .nfl-confidence-filter .note{margin:11px 0 0;font-size:12px;line-height:1.5}
 @media(max-width:700px){.nfl-week-confidence{min-width:90px}.nfl-confidence-filter{padding:13px}}
+
+/* Five aligned columns: matchup, score, pick, confidence, result */
+@media(min-width:900px){.nfl-week-row{grid-template-columns:minmax(145px,2fr) minmax(80px,1fr) minmax(95px,1fr) minmax(125px,1fr) minmax(110px,1fr)}}
+@media(min-width:661px) and (max-width:899px){.nfl-week-row{grid-template-columns:repeat(3,minmax(0,1fr))}.nfl-week-outcome{grid-column:2/4;text-align:right}}
+@media(max-width:660px){.nfl-week-confidence{align-items:flex-start;text-align:left}.nfl-week-outcome{grid-column:2;align-self:center}}
