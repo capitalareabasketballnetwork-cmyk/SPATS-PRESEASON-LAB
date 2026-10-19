@@ -177,3 +177,16 @@
 .nfl-odds-performance-footer strong{font-size:19px;font-weight:850;color:#f4f7fd;font-variant-numeric:tabular-nums}
 @media(max-width:950px){.nfl-odds-survey{grid-template-columns:repeat(2,minmax(0,1fr))}.nfl-odds-survey button{grid-column:1/-1}.nfl-unit-label{max-width:none}}
 @media(max-width:560px){.nfl-week-performance{padding:20px}.nfl-week-performance-body{gap:18px}.nfl-week-performance-record{min-width:0;padding-left:17px}.nfl-week-performance-record span{font-size:11px}.nfl-odds-survey{grid-template-columns:1fr}.nfl-odds-performance-main{grid-template-columns:1fr;gap:18px}.nfl-odds-performance-main>div+div{border-left:0;border-top:1px solid #ffffff2b;padding:18px 0 0}.nfl-odds-performance-footer{gap:25px;flex-wrap:wrap}}
+
+/* Shared scorecard styling for Week Explorer and Odds Calculator.
+   Intentionally mirrors the original Model Results .nfl-score card. */
+.nfl-score.nfl-score-pending{background:#172d4b;border-color:#47648a;color:#fff}
+.nfl-score.nfl-score-pending>strong,.nfl-score.nfl-score-pending>b{color:#d7e5f7}
+.nfl-score.nfl-betting-positive{background:#126b2f;border-color:#2f9e44;color:#fff}
+.nfl-score.nfl-betting-positive>strong,.nfl-score.nfl-betting-positive>b{color:#8dffae}
+.nfl-score.nfl-betting-negative{background:#5b1111;border-color:#b93939;color:#fff}
+.nfl-score.nfl-betting-negative>strong,.nfl-score.nfl-betting-negative>b{color:#ff9a90}
+.nfl-score.nfl-betting-positive small,.nfl-score.nfl-betting-negative small,.nfl-score.nfl-score-pending small{color:#fff}
+.nfl-score .nfl-betting-risked{font-size:17px;color:#fff;font-weight:800}
+.nfl-score>span{text-align:center}
+.nfl-score>strong{font-variant-numeric:tabular-nums}
