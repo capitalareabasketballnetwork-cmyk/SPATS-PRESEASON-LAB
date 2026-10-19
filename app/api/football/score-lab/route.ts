@@ -56,7 +56,7 @@ export async function POST(req:NextRequest){
   const variance=training.reduce((sum,t)=>sum+(t.edge-xbar)**2,0);
   const slope=training.length>=60?Math.max(-1,Math.min(18,cov/(variance+30))):0;
   const calibrated=training.length>=60?Math.max(-24,Math.min(24,ybar+slope*(g.edge-xbar))):scoringMargin;
-  const margin=Number.isFinite(g.edge)&&g.pick&&training.length>=60?.6*calibrated+.4*scoringMargin:scoringMargin;
+  const margin=(Number.isFinite(g.edge)&&Boolean(g.pick)&&training.length>=60)?(0.6*calibrated+0.4*scoringMargin):scoringMargin;
   const total=Math.max(20,Math.min(80,rawHome+rawAway));
   const homePoints=(total+margin)/2,awayPoints=(total-margin)/2;
   const o=byId.get(g.game_id)||byMatch.get(g.season+'|'+g.week+'|'+canon(g.home)+'|'+canon(g.away));
