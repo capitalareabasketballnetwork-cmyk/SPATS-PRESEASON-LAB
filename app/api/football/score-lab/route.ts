@@ -72,7 +72,7 @@ export async function POST(req:NextRequest){
   const totalPrice=totalPick==='over'?num(o?.over_odds):totalPick==='under'?num(o?.under_odds):NaN;
   const spread=settle(spreadPick,actualMargin,homeSpread,'spread',stake,spreadPrice);
   const totals=settle(totalPick,actualTotal,totalLine,'total',stake,totalPrice);
-  results.push({game_id:g.game_id,season:g.season,week:g.week,home:g.home,away:g.away,final:g.final,winnerConfidence:g.confidence??null,actualHome:g.homeScore,actualAway:g.awayScore,homePoints:Math.max(0,homePoints),awayPoints:Math.max(0,awayPoints),margin,total,homeSpread:Number.isFinite(homeSpread)?homeSpread:null,totalLine:Number.isFinite(totalLine)?totalLine:null,spreadPick,totalPick,spreadPrice:Number.isFinite(spreadPrice)?spreadPrice:null,totalPrice:Number.isFinite(totalPrice)?totalPrice:null,spreadOutcome:spread.outcome,spreadProfit:spread.profit,totalOutcome:totals.outcome,totalProfit:totals.profit});
+  results.push({game_id:g.game_id,season:g.season,week:g.week,home:g.home,away:g.away,final:g.final,actualHome:g.homeScore,actualAway:g.awayScore,homePoints:Math.max(0,homePoints),awayPoints:Math.max(0,awayPoints),margin,total,homeSpread:Number.isFinite(homeSpread)?homeSpread:null,totalLine:Number.isFinite(totalLine)?totalLine:null,spreadPick,totalPick,spreadPrice:Number.isFinite(spreadPrice)?spreadPrice:null,totalPrice:Number.isFinite(totalPrice)?totalPrice:null,spreadOutcome:spread.outcome,spreadProfit:spread.profit,totalOutcome:totals.outcome,totalProfit:totals.profit});
  }
  for(const g of batch){
   const h=num(g.homeScore),a=num(g.awayScore);
