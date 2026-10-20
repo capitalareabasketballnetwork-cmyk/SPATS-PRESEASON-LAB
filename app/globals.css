@@ -468,3 +468,13 @@
 .nfl-compare-result small{color:#aec4df}
 .nfl-compare-open{margin-top:auto;color:#f4d48e;font-weight:850;font-size:13px}
 @media(max-width:650px){.nfl-upcoming-week strong{margin-left:0}.nfl-compare-controls{grid-template-columns:repeat(2,minmax(0,1fr))}.nfl-compare-model-list{grid-template-columns:1fr}}
+
+/* Model comparison leaderboard: ranked by actual simulated profit for selected market. */
+.nfl-compare-result.nfl-compare-win{border:1.5px solid #3caa79;background:linear-gradient(150deg,#1b473e,#17352f 68%,#142a40);box-shadow:0 5px 20px #0a352550}
+.nfl-compare-result.nfl-compare-loss{border:1.5px solid #b55b63;background:linear-gradient(150deg,#4b2b37,#352530 68%,#17263d);box-shadow:0 5px 20px #40182045}
+.nfl-compare-result.nfl-compare-even{border:1.5px solid #647d99;background:linear-gradient(150deg,#293e59,#172b43)}
+.nfl-compare-result.nfl-compare-win:hover{border-color:#9de6bf}.nfl-compare-result.nfl-compare-loss:hover{border-color:#ffacb0}
+.nfl-compare-rank{align-self:flex-start;padding:5px 11px;border-radius:100px;background:#ffffff15;font-size:11px;letter-spacing:.09em;font-weight:900;color:#e4edf9}
+.nfl-compare-win .nfl-compare-rank{background:#2b775b;color:#d1ffe4}
+.nfl-compare-loss .nfl-compare-rank{background:#8a3b48;color:#ffe2e4}
+.nfl-compare-even .nfl-compare-rank{background:#455f7a;color:#e6f1ff}
