@@ -80,7 +80,11 @@ function mutate(source:number[]):number[]{
  else{w[i]=Math.max(0,w[i]+(Math.random()-.5)*.5);if(Math.random()<.5)w[j]=Math.max(0,w[j]+(Math.random()-.5)*.4)}
  let sum=w.reduce((a,b)=>a+b,0);if(!sum)return randomWeights(n);return w.map(v=>v/sum);
 }
-export async function POST(){
+// Cache expensive optimizer runs for one week across page visits. The first visit after expiry recomputes.
+export const revalidate=604800;
+let weeklyCache:{expires:number;result:unknown}|null=null;
+let pending:Promise<unknown>|null=null;
+async function optimize(){
  try{
  const {keys,matches}=await prepare();const train=matches.filter(m=>m.season<=2022);
  const validation=matches.filter(m=>m.season>=2023&&m.season<=2024);
@@ -102,6 +106,15 @@ export async function POST(){
  for(const c of finalists){if(top.every(other=>c.weights.reduce((sum,w,i)=>sum+Math.abs(w-other.weights[i]),0)>.35))top.push(c);if(top.length===5)break}
  // If accuracy ties are common, still return five different candidates.
  if(top.length<5)for(const c of finalists){if(top.every(other=>c.weights.reduce((sum,w,i)=>sum+Math.abs(w-other.weights[i]),0)>.12))top.push(c);if(top.length===5)break}
- return NextResponse.json({models:top.map((c,i)=>({name:'AI Candidate '+(i+1),weights:Object.fromEntries(keys.map((k,j)=>[k,Number(c.weights[j].toFixed(5))] as [string,number]).filter(([,w])=>w>0)),train:{wins:c.trainWins,games:c.trainGames,accuracy:c.train},validation:{wins:c.validationWins,games:c.validationGames,accuracy:c.validation},holdout:{wins:c.testWins,games:c.testGames,accuracy:c.test}})),evaluated:pool.length,statsConsidered:keys.length,method:'Randomized search with local weight mutations. Train 2018–2022, select by 2023–2024 validation accuracy, report untouched 2025 holdout. No future-game stats used.'});
+ return {models:top.map((c,i)=>({name:'AI Candidate '+(i+1),weights:Object.fromEntries(keys.map((k,j)=>[k,Number(c.weights[j].toFixed(5))] as [string,number]).filter(([,w])=>w>0)),train:{wins:c.trainWins,games:c.trainGames,accuracy:c.train},validation:{wins:c.validationWins,games:c.validationGames,accuracy:c.validation},holdout:{wins:c.testWins,games:c.testGames,accuracy:c.test}})),evaluated:pool.length,statsConsidered:keys.length,method:'Randomized search with local weight mutations. Train 2018–2022, select by 2023–2024 validation accuracy, report untouched 2025 holdout. No future-game stats used.',updatedAt:new Date().toISOString()};
+ }catch(e){throw e}
+}
+export async function POST(){
+ try{
+  const now=Date.now();
+  if(weeklyCache&&now<weeklyCache.expires)return NextResponse.json(weeklyCache.result);
+  if(!pending)pending=optimize().then(result=>{weeklyCache={result,expires:Date.now()+7*24*60*60*1000};return result}).finally(()=>{pending=null});
+  return NextResponse.json(await pending);
  }catch(e){return NextResponse.json({error:String(e)},{status:500})}
 }
+
