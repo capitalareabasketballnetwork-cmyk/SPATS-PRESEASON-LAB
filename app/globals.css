@@ -478,3 +478,8 @@
 .nfl-compare-win .nfl-compare-rank{background:#2b775b;color:#d1ffe4}
 .nfl-compare-loss .nfl-compare-rank{background:#8a3b48;color:#ffe2e4}
 .nfl-compare-even .nfl-compare-rank{background:#455f7a;color:#e6f1ff}
+
+.nfl-odds-tools{justify-content:flex-end;flex-wrap:wrap;gap:10px}
+.nfl-apply-optimum{display:inline-flex;align-items:center;justify-content:center;margin:14px 0 5px;padding:9px 15px;min-height:39px;border:1px solid #e3c27b;border-radius:9px;background:#463e32;color:#ffe0a1;font-size:13px;font-weight:850;cursor:pointer}
+.nfl-apply-optimum:hover{background:#5b4b34}
+.nfl-confidence-explainer{margin:12px 0;padding:12px 15px;border-left:3px solid #d6b66d;border-radius:8px;background:#21344b;color:#d9e5f5;font-size:13px;line-height:1.6}
