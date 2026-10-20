@@ -1,15 +1,16 @@
 'use client';
-import {useState} from 'react';
+import {useEffect,useState} from 'react';
 import {db} from '../../../lib/supabase';
 import Link from 'next/link';
 type Period={wins:number;games:number;accuracy:number};
 type Model={name:string;weights:Record<string,number>;train:Period;validation:Period;holdout:Period};
-type Result={models:Model[];evaluated:number;statsConsidered:number;method:string};
+type Result={models:Model[];evaluated:number;statsConsidered:number;method:string;cachedAt?:string};
 const grade=(accuracy:number)=>accuracy>=60?'strong':accuracy>=55?'moderate':'weak';
 const label=(name:string)=>name.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
 export default function ModelAdvisor(){
  const [result,setResult]=useState<Result|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[selected,setSelected]=useState(0);
  const [saveName,setSaveName]=useState(''),[saving,setSaving]=useState(false),[saveMessage,setSaveMessage]=useState(''),[saveError,setSaveError]=useState(false);
+ useEffect(()=>{void run()},[]);
  const run=async()=>{setBusy(true);setError('');setResult(null);setSelected(0);setSaveName('');setSaveMessage('');try{
  const response=await fetch('/api/football/model-advisor',{method:'POST'});
  const data=await response.json();if(!response.ok)throw Error(data.error||'Model optimization unavailable');
@@ -32,7 +33,7 @@ export default function ModelAdvisor(){
  return <main className="nfl-scorelab"><div className="nfl-scorelab-top"><Link href="/football">← Football Model Lab</Link><span>SPATS · MODEL OPTIMIZER</span></div>
  <h1>AI Model Advisor</h1><p>Discover new NFL models automatically. The optimizer searches combinations of the available statistics and weights, without using any saved user models.</p>
  <section className="panel"><h2>Find the strongest models</h2><p className="note">The search trains on 2018–2022, ranks candidates on 2023–2024, and reports 2025 as an unseen holdout season. The highest historical accuracy does not guarantee future wins.</p>
- <button disabled={busy} onClick={()=>void run()}>{busy?'Searching model combinations…':'Find top 5 models'}</button>
+ <button className="nfl-ai-search-button" disabled={busy} onClick={()=>void run()}>{busy?'✦ Loading top models…':'✦ Find Top 5 Models'} <span aria-hidden="true">→</span></button>
  {busy&&<p className="note">Testing candidate statistics and weights. This may take a little while.</p>}{error&&<p className="notice">{error}</p>}
  </section>
  {result&&<><section className="panel"><h2>Top 5 discovered models</h2><p className="note">Evaluated {result.evaluated.toLocaleString()} combinations across {result.statsConsidered} candidate statistics. Ranked by validation accuracy—not by holdout accuracy.</p>
