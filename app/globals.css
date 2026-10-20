@@ -483,3 +483,12 @@
 .nfl-apply-optimum{display:inline-flex;align-items:center;justify-content:center;margin:14px 0 5px;padding:9px 15px;min-height:39px;border:1px solid #e3c27b;border-radius:9px;background:#463e32;color:#ffe0a1;font-size:13px;font-weight:850;cursor:pointer}
 .nfl-apply-optimum:hover{background:#5b4b34}
 .nfl-confidence-explainer{margin:12px 0;padding:12px 15px;border-left:3px solid #d6b66d;border-radius:8px;background:#21344b;color:#d9e5f5;font-size:13px;line-height:1.6}
+
+.nfl-odds-tools .nfl-upcoming-link{gap:9px}
+.nfl-odds-tools .nfl-live-dot{width:10px;height:10px;background:#f04d5c}
+.nfl-upcoming-ideal-track{position:relative;height:17px;margin:0 9px}
+.nfl-upcoming-ideal-arrow{position:absolute;top:-2px;transform:translateX(-50%);font-size:15px;color:#f4d083;line-height:1}
+.nfl-upcoming-ideal-note{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;margin:6px 0 12px;color:#f5d58f;font-size:12px}
+.nfl-upcoming-ideal-note button{padding:6px 10px;border:1px solid #d8b56b;border-radius:8px;background:#463c2d;color:#ffe0a2;font-size:12px;font-weight:800;cursor:pointer}
+.nfl-upcoming-ideal-note button:hover{background:#625034}
+.nfl-upcoming-ideal-note small{flex-basis:100%;color:#adc1d9;font-size:11px}
