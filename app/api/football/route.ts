@@ -72,7 +72,7 @@ export async function POST(req:NextRequest){try{
  const weightTotal=keys.reduce((sum,k)=>sum+Number(active[k]),0);
  const start=Number(payload.start||d.seasons[0]),end=Number(payload.end||d.seasons[d.seasons.length-1]);
  // Include earlier completed games only to calibrate each pick without seeing its outcome.
- const calibrationStart=Math.min(start,2015);
+ const calibrationStart=2015; // One fixed historical calibration window for every site view and requested season range.
 
  // Index team-game observations. A prediction no longer depends on a row existing
  // for the game being predicted: it is built from that team's PRIOR rows.
