@@ -384,3 +384,27 @@
 @media(prefers-reduced-motion:reduce){.nfl-ai-advisor-button,.nfl-ai-advisor-button::before,.nfl-market-picker button{transition:none}}
 
 .nfl-ai-search-button{display:inline-flex;align-items:center;justify-content:center;gap:16px;min-height:49px;padding:12px 24px;border:1px solid #e8c3f9;border-radius:12px;background:linear-gradient(110deg,#5144a2,#365ca9 45%,#397b82);color:#fff;font-weight:850;letter-spacing:.02em;box-shadow:0 4px 20px #6c73dd55;cursor:pointer}.nfl-ai-search-button:hover{filter:brightness(1.16)}.nfl-ai-search-button:disabled{opacity:.65;cursor:wait}.nfl-ai-search-button span{font-size:21px}.spats-profile-grid>div{min-width:0;border:1px solid #48617d;border-radius:9px;padding:13px 15px;background:#192f4a}.spats-profile-grid>div small{display:block;font-size:11px;color:#a8bdd8;font-weight:800}.spats-profile-grid>div p{margin:6px 0 0;font-weight:750;overflow-wrap:anywhere}.nfl-market-symbol{flex-basis:auto;min-width:33px;padding:0 5px;font-size:15px;white-space:nowrap}@media(max-width:680px){.nfl-market-symbol{min-width:29px;font-size:13px}}
+
+/* Keep betting market icons contained and centered, including on mobile. */
+.nfl-market-picker button{min-width:0;overflow:hidden}
+.nfl-market-symbol{display:flex;align-items:center;justify-content:center;flex:0 0 48px;width:48px;max-width:100%;min-width:0;min-height:34px;padding:3px 4px;line-height:1;white-space:nowrap;text-align:center;font-size:15px;letter-spacing:-.025em}
+.nfl-market-label{min-width:0;text-align:center}
+.nfl-ai-advisor-wrap{display:flex;align-items:center;flex-wrap:wrap;gap:16px}
+.nfl-upcoming-link,.nfl-compare-link{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:39px;padding:9px 15px;border:1px solid #58718f;border-radius:10px;background:#1a314d;color:#e9f1fb;font-weight:800;font-size:13px;text-decoration:none;transition:background .2s}
+.nfl-upcoming-link:hover,.nfl-compare-link:hover{background:#304b70;color:#fff}
+.nfl-live-dot{display:inline-block;flex:none;width:9px;height:9px;border-radius:50%;background:#f04d5c;box-shadow:0 0 0 3px #f04d5c22,0 0 11px #f04d5c88}
+.nfl-odds-tools{display:flex;justify-content:flex-end;margin:5px 0 12px}
+.nfl-compare-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(285px,1fr));gap:18px;margin:18px 0 30px}
+.nfl-compare-card h2{margin-bottom:15px}
+.nfl-compare-market{display:flex;flex-direction:column;gap:5px;margin:10px 0;padding:13px;border:1px solid #435f80;border-radius:10px;background:#192f4a;color:#e8f0fa;text-decoration:none}
+.nfl-compare-market:hover{border-color:#e7c97d;background:#243e5e}
+.nfl-compare-market strong{font-size:14px}
+.nfl-compare-market span,.nfl-compare-market small{color:#bbcee6}
+.nfl-compare-market b{font-size:16px}
+.nfl-compare-market .positive{color:#95ebc1}.nfl-compare-market .negative{color:#ffabb0}
+.nfl-compare-controls{display:grid;grid-template-columns:repeat(3,minmax(100px,1fr)) auto;align-items:end;gap:14px}
+.nfl-compare-controls label{display:flex;flex-direction:column;gap:7px;font-size:12px;font-weight:800;color:#c9d9ec}
+.nfl-compare-controls input,.nfl-compare-controls select{width:100%;min-height:43px}
+.nfl-compare-controls button{min-height:43px}
+.nfl-upcoming-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:15px}
+@media(max-width:720px){.nfl-market-symbol{flex:0 0 35px;width:35px;min-height:29px;font-size:12px}.nfl-compare-controls{grid-template-columns:repeat(2,minmax(0,1fr))}.nfl-compare-controls button{grid-column:1/-1}}
