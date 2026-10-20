@@ -492,3 +492,5 @@
 .nfl-upcoming-ideal-note button{padding:6px 10px;border:1px solid #d8b56b;border-radius:8px;background:#463c2d;color:#ffe0a2;font-size:12px;font-weight:800;cursor:pointer}
 .nfl-upcoming-ideal-note button:hover{background:#625034}
 .nfl-upcoming-ideal-note small{flex-basis:100%;color:#adc1d9;font-size:11px}
+
+.nfl-odds-side-record{display:block;margin-top:5px;color:#d5e5f5;font-size:13px;font-weight:700}
