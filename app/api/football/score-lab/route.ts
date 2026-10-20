@@ -25,7 +25,7 @@ function settle(pick:Pick,actual:number,line:number,kind:'spread'|'total',stake:
  if(pick==='none'||!Number.isFinite(line)||!Number.isFinite(price)||price===0)return {outcome:'no line' as Outcome,profit:null};
  if(!Number.isFinite(actual))return {outcome:'pending' as Outcome,profit:null};
  const score=kind==='spread'?actual+line:actual-line;
- if(Math.abs(score)<.0001)return {outcome:'push' as Outcome,profit:0};
+ if(Math.abs(score)<1e-9)return {outcome:'push' as Outcome,profit:0};
  const won=kind==='spread'?(pick==='home'?score>0:score<0):(pick==='over'?score>0:score<0);
  return {outcome:(won?'win':'loss') as Outcome,profit:won?payout(stake,price):-stake};
 }
@@ -63,7 +63,8 @@ export async function POST(req:NextRequest){
   const mlHome=num(o?.home_moneyline),mlAway=num(o?.away_moneyline),rawSpread=num(o?.spread_line),totalLine=num(o?.total_line);
   // nflverse spread_line stores the absolute spread; infer the home-side sign from moneyline favoritism.
   const homeSpread=Number.isFinite(rawSpread)&&Number.isFinite(mlHome)&&Number.isFinite(mlAway)&&mlHome!==mlAway?(mlHome<mlAway?-Math.abs(rawSpread):Math.abs(rawSpread)):NaN;
-  const spreadPick:Pick=Number.isFinite(homeSpread)?margin+homeSpread>0?'home':margin+homeSpread<0?'away':'push':'none';
+  const spreadDifference=margin+homeSpread;
+  const spreadPick:Pick=Number.isFinite(homeSpread)?Math.abs(spreadDifference)<1e-9?'push':spreadDifference>0?'home':'away':'none';
   const totalPick:Pick=Number.isFinite(totalLine)?total>totalLine?'over':total<totalLine?'under':'push':'none';
   const actualHome=num(g.homeScore),actualAway=num(g.awayScore);
   const actualMargin=g.final&&Number.isFinite(actualHome)&&Number.isFinite(actualAway)?actualHome-actualAway:NaN;
