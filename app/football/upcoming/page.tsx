@@ -3,7 +3,7 @@ import {useEffect,useMemo,useState} from 'react';
 import Link from 'next/link';
 import {db} from '../../../lib/supabase';
 type Market='moneyline'|'spread'|'total';
-type Model={name:string;weights:Record<string,number>};
+type Model={name:string;weights:Record<string,number>;source?:string};
 type Game={game_id:string;season:number;week:number;date:string;home:string;away:string;pick:string|null;confidence:number|null;homeScore:string;awayScore:string;final?:boolean;edge?:number};
 type Projection={game_id:string;week:number;home:string;away:string;homePoints:number;awayPoints:number;margin:number;total:number;homeSpread:number|null;totalLine:number|null;spreadPick:string;totalPick:string};
 const marketOptions:[Market,string,string][]=[['moneyline','Moneyline','$'],['spread','Spread','+ −'],['total','Over/Under','↑ / ↓']];
@@ -22,7 +22,7 @@ export default function UpcomingGames(){
  <Link href="/football?tab=odds" className="nfl-back-link">← Back to Football Model Lab</Link>
  <div className="eyebrow">SPATS · NFL <span className="nfl-live-dot"/> UPCOMING SCHEDULE</div><h1>Upcoming Games</h1>
  <p className="note">Your saved model's next scheduled NFL games. Winner confidence is a model estimate, not a guaranteed probability.</p>
- <section className="panel nfl-upcoming-controls"><label className="nfl-field-label">Prediction model <span className="nfl-select-wrap"><select value={model} onChange={e=>setModel(e.target.value)}><option value="">Choose your saved model</option>{models.map(m=><option key={m.name} value={m.name}>{m.name}</option>)}</select></span></label>
+ <section className="panel nfl-upcoming-controls"><label className="nfl-field-label">Prediction model <span className="nfl-select-wrap"><select value={model} onChange={e=>setModel(e.target.value)}><option value="">Choose your saved model</option>{models.map(m=><option key={m.name} value={m.name}>{m.source==='ai-advisor'?'✦ ':''}{m.name}</option>)}</select></span></label>
  <div className="nfl-market-picker" role="group" aria-label="Prediction type">{marketOptions.map(([id,label,symbol])=><button type="button" key={id} className={market===id?'active':''} aria-pressed={market===id} onClick={()=>setMarket(id)}><span className="nfl-market-symbol">{symbol}</span><span className="nfl-market-label">{label}</span></button>)}</div>
  {market==='moneyline'?<div className="nfl-upcoming-filter"><div className="nfl-upcoming-filter-heading"><strong>Minimum winner confidence</strong><b>{minimum}%+</b></div><input type="range" min={0} max={85} step={1} value={minimum} onChange={e=>setMinimum(Number(e.target.value))} aria-label="Minimum winner confidence"/><div className="nfl-upcoming-filter-ends"><span>0%</span><span>85%</span></div><p className="note">{visible.length} of {games.length} games meet your threshold.</p></div>:<p className="nfl-market-disclaimer">{market==='spread'?'Projected scoring margin':'Projected combined points'} is shown without a sportsbook line. A reliable bet recommendation or market-specific confidence percentage is not available until a line and calibrated probability model are available.</p>}
  {!models.length&&<p className="note">Save a model in the <Link href="/football">Football Model Lab</Link> to see predictions.</p>}{busy&&<p className="note">Loading games and projections…</p>}{error&&<p className="notice" role="alert">{error}</p>}</section>
