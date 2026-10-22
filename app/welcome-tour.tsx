@@ -9,6 +9,7 @@ const steps=[
  {title:'Understand statistic weights',description:'A weight is how much influence a statistic has on your prediction. For example, a weight of 0.200 means that statistic contributes 20% of the model. Edit the numbers to prioritize the stats you trust most.',target:'[data-tour="weight-editor"]',href:'/football?tab=builder'},
  {title:'Equal weights and re-total',description:'Equal weights gives every selected statistic the same importance. Re-total to 1.000 keeps your chosen proportions but rescales them to add up to 100%. Try either button and check that Total reads exactly 1.000 before continuing.',target:'[data-tour="weight-editor"]',href:'/football?tab=builder',required:'weights'},
  {title:'Compute your first model',description:'Now click the highlighted Compute Model button. Wait for the historical backtest to finish. This step advances only after the computation succeeds.',target:'[data-tour="compute"]',href:'/football?tab=builder',required:'computed'},
+ {title:'Review your model results',description:'Take a moment to look at your historical backtest accuracy, win-loss record, scorecard, and season-by-season results. These results help you judge how your model performed before you give it a name.',target:'[data-tour="results"]',href:'/football?tab=builder'},
  {title:'Save your own model',description:'Review your results, type a name for your model, and click Save to Account. We will wait until your model is actually saved to your account.',target:'[data-tour="save"]',href:'/football?tab=builder',required:'saved'},
  {title:'Explore the Odds Calculator',description:'Your saved model is now available for hypothetical moneyline, spread, and over/under simulations. Select it in the Odds Calculator to test historical results.',target:'.nfl-tabs',href:'/football?tab=odds'},
  {title:'Try Upcoming Games',description:'Use This Week’s Picks or Upcoming Games to see predictions from your saved model. Confidence and historical profit are educational, not guaranteed future outcomes.',target:'.nfl-upcoming-link',href:'/football?tab=odds'},
@@ -26,7 +27,7 @@ export default function WelcomeTour({user}:{user:User}){
  useEffect(()=>{
   if(step===null)return;
   const onComputed=()=>setStep(current=>current===4?5:current);
-  const onSaved=(e:Event)=>{const name=(e as CustomEvent<{name:string}>).detail?.name||'Your model';setSavedName(name);setStep(current=>current===5?6:current)};
+  const onSaved=(e:Event)=>{const name=(e as CustomEvent<{name:string}>).detail?.name||'Your model';setSavedName(name);setStep(current=>current===6?7:current)};
   window.addEventListener('spats-tour-computed',onComputed);window.addEventListener('spats-tour-saved',onSaved);
   return()=>{window.removeEventListener('spats-tour-computed',onComputed);window.removeEventListener('spats-tour-saved',onSaved)}
  },[step]);
@@ -42,14 +43,27 @@ export default function WelcomeTour({user}:{user:User}){
    const r=el.getBoundingClientRect();
    if(!r.width||!r.height){setRect(null);setCardPos({});return}
    setRect({top:r.top,left:r.left,width:r.width,height:r.height});
+   const viewportHeight=window.visualViewport?.height||window.innerHeight;
+   const viewportTop=window.visualViewport?.offsetTop||0;
    const cardWidth=Math.min(390,window.innerWidth-32);
+   const cardHeight=Math.min(380,viewportHeight-24);
+   const topMin=viewportTop+12,topMax=viewportTop+viewportHeight-cardHeight-12;
+   const clampTop=(v:number)=>Math.max(topMin,Math.min(Math.max(topMin,topMax),v));
+   const clampLeft=(v:number)=>Math.max(12,Math.min(window.innerWidth-cardWidth-12,v));
    const spaceRight=window.innerWidth-r.right,spaceLeft=r.left;
-   if(spaceRight>=cardWidth+26)setCardPos({position:'fixed',left:r.right+16,top:Math.max(12,Math.min(r.top,window.innerHeight-340)),width:cardWidth});
-   else if(spaceLeft>=cardWidth+26)setCardPos({position:'fixed',left:r.left-cardWidth-16,top:Math.max(12,Math.min(r.top,window.innerHeight-340)),width:cardWidth});
-   else if(r.bottom+340<window.innerHeight)setCardPos({position:'fixed',left:Math.max(16,Math.min(window.innerWidth-cardWidth-16,r.left)),top:r.bottom+14,width:cardWidth});
-   else if(r.top>=340)setCardPos({position:'fixed',left:Math.max(16,Math.min(window.innerWidth-cardWidth-16,r.left)),bottom:window.innerHeight-r.top+14,width:cardWidth});
-   else setCardPos({position:'fixed',bottom:12,left:'50%',transform:'translateX(-50%)',width:cardWidth});
+   const spaceBelow=viewportTop+viewportHeight-r.bottom;
+   const spaceAbove=r.top-viewportTop;
+   let left:number,top:number;
+   if(spaceRight>=cardWidth+26){left=r.right+16;top=clampTop(r.top)}
+   else if(spaceLeft>=cardWidth+26){left=r.left-cardWidth-16;top=clampTop(r.top)}
+   else if(spaceBelow>=cardHeight+20){left=clampLeft(r.left);top=clampTop(r.bottom+14)}
+   else if(spaceAbove>=cardHeight+20){left=clampLeft(r.left);top=clampTop(r.top-cardHeight-14)}
+   else {left=clampLeft(r.left);top=clampTop(spaceAbove>spaceBelow?viewportTop+12:viewportTop+viewportHeight-cardHeight-12)}
+   setCardPos({position:'fixed',left,top,width:cardWidth,transform:'none',bottom:'auto',maxHeight:Math.max(160,viewportHeight-24)})
+
   };
+  const target=steps[step].target?document.querySelector<HTMLElement>(steps[step].target):null;
+  if(target){const bounds=target.getBoundingClientRect();if(bounds.bottom>window.innerHeight-110||bounds.top<75)target.scrollIntoView({behavior:'smooth',block:'center'});}
   const timer=window.setInterval(update,350);update();
   return()=>{window.clearInterval(timer);highlighted?.classList.remove('spats-tour-highlighted')}
  },[step,pathname]);
@@ -67,10 +81,10 @@ export default function WelcomeTour({user}:{user:User}){
     <div className="spats-tour-progress"><span style={{width:((step+1)/steps.length*100)+'%'}}/></div>
     <small>STEP {step+1} OF {steps.length}</small>
     <h2>{steps[step].title}</h2><p>{steps[step].description}</p>
-    {step===6&&savedName&&<p className="spats-tour-success">✓ Saved: {savedName}</p>}
+    {step===7&&savedName&&<p className="spats-tour-success">✓ Saved: {savedName}</p>}
     {step===3&&<p className={validWeights?'spats-tour-success':'spats-tour-hint'}>{validWeights?'✓ Weights total 1.000 — ready to compute.':'Use Equal weights or Re-total to 1.000 to continue.'}</p>}
-    {(step===4||step===5)&&<p className="spats-tour-hint">Interact with the highlighted website controls to continue.</p>}
-    <div className="spats-tour-actions"><button type="button" disabled={step===0} onClick={()=>navigate(Math.max(0,step-1))}>Back</button><button type="button" className="primary" disabled={step===4||step===5||(step===3&&!validWeights)} onClick={next}>{step===3&&!validWeights?'Set total to 1.000':step===4?'Waiting for Compute…':step===5?'Waiting for Save…':step===steps.length-1?'Finish Tour':'Next →'}</button></div>
+    {(step===4||step===6)&&<p className="spats-tour-hint">Interact with the highlighted website controls to continue.</p>}
+    <div className="spats-tour-actions"><button type="button" disabled={step===0} onClick={()=>navigate(Math.max(0,step-1))}>Back</button><button type="button" className="primary" disabled={step===4||step===6||(step===3&&!validWeights)} onClick={next}>{step===3&&!validWeights?'Set total to 1.000':step===4?'Waiting for Compute…':step===6?'Waiting for Save…':step===steps.length-1?'Finish Tour':'Next →'}</button></div>
    </section>
   </div>}
  </>;
