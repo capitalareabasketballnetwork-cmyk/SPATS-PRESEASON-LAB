@@ -3,14 +3,14 @@ import {leagues,type League,type Game} from '../../../lib/multisport-model';
 export const runtime='nodejs';
 export const maxDuration=60;
 const known=(s:string):s is League=>Object.prototype.hasOwnProperty.call(leagues,s);
-type Event={id?:string;date?:string;competitions?:Array<{competitors?:Array<{homeAway?:string;score?:string|number;team?:{displayName?:string;shortDisplayName?:string}}>;neutralSite?:boolean;status?:{type?:{completed?:boolean;state?:string}}}>;status?:{type?:{completed?:boolean;state?:string}}};
+type Event={id?:string;date?:string;week?:{number?:number};competitions?:Array<{competitors?:Array<{homeAway?:string;score?:string|number;team?:{displayName?:string;shortDisplayName?:string}}>;neutralSite?:boolean;status?:{type?:{completed?:boolean;state?:string}}}>;status?:{type?:{completed?:boolean;state?:string}}};
 function parse(event:Event):Game|null{
  const competition=event.competitions?.[0];const home=competition?.competitors?.find(x=>x.homeAway==='home'),away=competition?.competitors?.find(x=>x.homeAway==='away');
  if(!home?.team||!away?.team||!event.id||!event.date)return null;
  const state=competition?.status?.type||event.status?.type;
  const final=state?.completed===true||state?.state==='post';
  const hs=home.score===undefined||home.score===''?null:Number(home.score),as=away.score===undefined||away.score===''?null:Number(away.score);
- return {id:event.id,date:event.date,home:home.team.displayName||home.team.shortDisplayName||'',away:away.team.displayName||away.team.shortDisplayName||'',homeScore:final&&hs!==null&&Number.isFinite(hs)?hs:null,awayScore:final&&as!==null&&Number.isFinite(as)?as:null,final:!!final&&hs!==null&&as!==null&&Number.isFinite(hs)&&Number.isFinite(as),neutral:!!competition?.neutralSite};
+ return {id:event.id,date:event.date,week:event.week?.number,home:home.team.displayName||home.team.shortDisplayName||'',away:away.team.displayName||away.team.shortDisplayName||'',homeScore:final&&hs!==null&&Number.isFinite(hs)?hs:null,awayScore:final&&as!==null&&Number.isFinite(as)?as:null,final:!!final&&hs!==null&&as!==null&&Number.isFinite(hs)&&Number.isFinite(as),neutral:!!competition?.neutralSite};
 }
 async function loadGames(league:League,season:number):Promise<{games:Game[];requests:number;failures:number}>{
  const l=leagues[league];const base='https://site.api.espn.com/apis/site/v2/sports/'+l.sport+'/'+l.division+'/scoreboard?limit=1000';
