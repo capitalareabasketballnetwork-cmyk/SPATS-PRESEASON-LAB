@@ -10,7 +10,7 @@ function parse(event:Event):Game|null{
  const state=competition?.status?.type||event.status?.type;
  const final=state?.completed===true||state?.state==='post';
  const hs=home.score===undefined||home.score===''?null:Number(home.score),as=away.score===undefined||away.score===''?null:Number(away.score);
- return {id:event.id,date:event.date,week:event.week?.number,home:home.team.displayName||home.team.shortDisplayName||'',away:away.team.displayName||away.team.shortDisplayName||'',homeScore:final&&hs!==null&&Number.isFinite(hs)?hs:null,awayScore:final&&as!==null&&Number.isFinite(as)?as:null,final:!!final&&hs!==null&&as!==null&&Number.isFinite(hs)&&Number.isFinite(as),neutral:!!competition?.neutralSite};
+ return {id:event.id,date:event.date,week:event.week?.number,home:home.team.shortDisplayName||home.team.displayName||'',away:away.team.shortDisplayName||away.team.displayName||'',homeScore:final&&hs!==null&&Number.isFinite(hs)?hs:null,awayScore:final&&as!==null&&Number.isFinite(as)?as:null,final:!!final&&hs!==null&&as!==null&&Number.isFinite(hs)&&Number.isFinite(as),neutral:!!competition?.neutralSite};
 }
 async function loadGames(league:League,season:number):Promise<{games:Game[];requests:number;failures:number}>{
  const l=leagues[league];const base='https://site.api.espn.com/apis/site/v2/sports/'+l.sport+'/'+l.division+'/scoreboard?limit=1000';
