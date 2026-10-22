@@ -1,6 +1,6 @@
 import {backtest,type Game,type WeightMap} from './multisport-model';
 export type OddsGame={id:string;season:number;date:string;home:string;away:string;homeScore:number|null;awayScore:number|null;lines:Array<{provider:string;spread:number|null;overUnder:number|null;homeMoneyline:number|null;awayMoneyline:number|null}>};
-export type BetRow={id:string;date:string;game:string;pick:string;line:string;price:number;provider:string;result:'Win'|'Loss'|'Push';profit:number;returnAmount:number;confidence:string;method:string};
+export type BetRow={id:string;date:string;game:string;pick:string;line:string;price:number;provider:string;result:'Win'|'Loss'|'Push';profit:number;returnAmount:number;confidence:string;confidenceScore:number;method:string};
 const canon=(s:string)=>s.toLowerCase().replace(/\b(university|college|the|of|at|state university)\b/g,'').replace(/[^a-z0-9]/g,'').replace(/st$/,'state').replace(/^(miami)(florida)$/,'miamifl');
 const aliases:Record<string,string>={olemiss:'mississippi',mississippi:'mississippi',ucf:'centralflorida',centralflorida:'centralflorida',utsa:'texassanantonio',texassanantonio:'texassanantonio',uconn:'connecticut',connecticut:'connecticut',smu:'southernmethodist',southernmethodist:'southernmethodist',byu:'brighamyoung',brighamyoung:'brighamyoung',usf:'southflorida',southflorida:'southflorida',lsu:'louisianastate',louisianastate:'louisianastate',pitt:'pittsburgh',pittsburgh:'pittsburgh',unlv:'nevadalasvegas',nevadalasvegas:'nevadalasvegas',umass:'massachusetts',massachusetts:'massachusetts',appstate:'appalachianstate',appalachianstate:'appalachianstate',fau:'floridaatlantic',floridaatlantic:'floridaatlantic',fiu:'floridainternational',floridainternational:'floridainternational',ulm:'louisianamonroe',louisianamonroe:'louisianamonroe',ull:'louisiana',louisianalafayette:'louisiana',louisiana:'louisiana',texasam:'texasam',texasaandm:'texasam',ncstate:'northcarolinastate',northcarolinastate:'northcarolinastate',southernmiss:'southernmississippi',southernmississippi:'southernmississippi',miamioh:'miamiohio',miamiohio:'miamiohio'};
 const key=(s:string)=>aliases[canon(s)]||canon(s);
@@ -45,11 +45,11 @@ export function simulateCfb(games:Game[],odds:OddsGame[],weights:WeightMap,marke
   price=-110; // CFBD does not provide spread/total juice; explicitly hypothetical
  }
  const confidence=Math.abs(p.edge)>=.65?'High':Math.abs(p.edge)>=.3?'Medium':'Low';
- const threshold=minimum<=50?0:minimum>=90?.65:(minimum-50)/40*.65;
- if(Math.abs(p.edge)<threshold)continue;
+ const confidenceScore=Math.round(50+40*Math.min(1,Math.abs(p.edge)/.65));
+ if(confidenceScore<minimum)continue;
  eligible++;
  const profit=outcome==='Push'?0:outcome==='Win'?americanProfit(price,stake):-stake;
- rows.push({id:p.id,date:p.date,game:p.away+' @ '+p.home,pick,line:label,price,provider:line.provider,result:outcome,profit,returnAmount:outcome==='Push'?stake:outcome==='Win'?stake+profit:0,confidence,method});
+ rows.push({id:p.id,date:p.date,game:p.away+' @ '+p.home,pick,line:label,price,provider:line.provider,result:outcome,profit,returnAmount:outcome==='Push'?stake:outcome==='Win'?stake+profit:0,confidence,confidenceScore,method});
  }
  const wins=rows.filter(r=>r.result==='Win').length,losses=rows.filter(r=>r.result==='Loss').length,pushes=rows.filter(r=>r.result==='Push').length,profit=rows.reduce((n,r)=>n+r.profit,0),risked=(wins+losses)*stake;
  return {rows,matched,eligible,unpriced,unmatched,unprojected,summary:{bets:rows.length,wins,losses,pushes,profit,risked,roi:risked?profit/risked*100:0}};
