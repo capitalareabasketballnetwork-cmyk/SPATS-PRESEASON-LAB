@@ -576,3 +576,13 @@
 .spats-multi .spats-advisor-accuracy.spats-advisor-strong{background:#1c6448;color:#dcffeb}
 .spats-multi .spats-advisor-accuracy.spats-advisor-moderate{background:#665125;color:#fff1c9}
 .spats-multi .spats-advisor-accuracy.spats-advisor-weak{background:#71303b;color:#ffe6ea}
+
+
+/* Multisport model advisor performance colors: validation accuracy */
+.spats-multi .nfl-advisor-top-five .spats-advisor-quality.spats-advisor-strong{background:#143e30;border:2px solid #36bb82;color:#e5ffed}
+.spats-multi .nfl-advisor-top-five .spats-advisor-quality.spats-advisor-moderate{background:#463c22;border:2px solid #caa85a;color:#fff0c4}
+.spats-multi .nfl-advisor-top-five .spats-advisor-quality.spats-advisor-weak{background:#4b232c;border:2px solid #ed7580;color:#ffe6e8}
+.spats-multi .nfl-advisor-top-five .spats-advisor-quality.active{outline:3px solid #f7f9ff;outline-offset:2px}
+.spats-multi .nfl-score.nfl-quality-strong{background:#143e30;border-color:#36bb82;color:#e5ffed}
+.spats-multi .nfl-score.nfl-quality-moderate{background:#463c22;border-color:#caa85a;color:#fff0c4}
+.spats-multi .nfl-score.nfl-quality-weak{background:#4b232c;border-color:#ed7580;color:#ffe6e8}
