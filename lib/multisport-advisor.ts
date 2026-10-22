@@ -2,8 +2,23 @@ import {backtest,initialWeights,metrics,normalizeWeights,type Game,type WeightMa
 export type AdvisorResult={name:string;weights:WeightMap;accuracy:number;games:number;holdout:number;wins:number;trainingAccuracy:number;holdoutAccuracy:number;holdoutWins:number;holdoutGames:number};
 const candidateModels=()=>{
  const list:Array<{name:string;weights:WeightMap}>=[{name:'Balanced',weights:initialWeights}];
- for(const m of metrics)list.push({name:m.label,weights:{[m.key]:1}});
- for(let i=0;i<metrics.length;i++)for(let j=i+1;j<metrics.length;j++)for(const ratio of [[1,1],[2,1],[1,2]])list.push({name:metrics[i].label+' + '+metrics[j].label+' ('+ratio.join(':')+')',weights:normalizeWeights({[metrics[i].key]:ratio[0],[metrics[j].key]:ratio[1]})});
+ const add=(name:string,raw:WeightMap)=>list.push({name,weights:normalizeWeights(raw)});
+ for(const m of metrics)add(m.label,{[m.key]:1});
+ for(let i=0;i<metrics.length;i++)for(let j=i+1;j<metrics.length;j++)for(const ratio of [[1,1],[2,1],[1,2]])add(metrics[i].label+' + '+metrics[j].label+' ('+ratio.join(':')+')',{[metrics[i].key]:ratio[0],[metrics[j].key]:ratio[1]});
+ // Broaden the search beyond pairs: balanced and emphasized three-stat models.
+ const shortlist=['win_pct','point_margin','points_for','points_against','recent_win_pct','recent_margin','home_win_pct','away_win_pct','scoring_consistency','defensive_consistency','home_margin','away_margin'] as const;
+ for(let i=0;i<shortlist.length;i++)for(let j=i+1;j<shortlist.length;j++)for(let k=j+1;k<shortlist.length;k++){
+  const keys=[shortlist[i],shortlist[j],shortlist[k]];
+  for(const ratio of [[1,1,1],[2,1,1],[1,2,1],[1,1,2]])add('Triple: '+keys.join(' / ')+' ('+ratio.join(':')+')',Object.fromEntries(keys.map((key,n)=>[key,ratio[n]])) as WeightMap);
+ }
+ // Deterministic sparse search: reproducible runs and no reliance on lucky random seeds.
+ let seed=734219;const rand=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
+ for(let n=0;n<400;n++){
+  const count=3+Math.floor(rand()*5),order=[...metrics.map(m=>m.key)];
+  for(let i=order.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[order[i],order[j]]=[order[j],order[i]]}
+  const raw={} as WeightMap;for(const key of order.slice(0,count))raw[key]=Math.pow(rand(),1.5)+.05;
+  add('Deep search '+(n+1),raw);
+ }
  return list;
 };
 export function rankAdvisorModels(games:Game[]):{top:AdvisorResult[];tested:number;training:number;validation:number;holdout:number;warning:string}{
