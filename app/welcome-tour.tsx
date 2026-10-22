@@ -64,8 +64,10 @@ export default function WelcomeTour({user}:{user:User}){
   };
   const target=steps[step].target?document.querySelector<HTMLElement>(steps[step].target):null;
   if(target){const bounds=target.getBoundingClientRect();if(bounds.bottom>window.innerHeight-110||bounds.top<75)target.scrollIntoView({behavior:'smooth',block:'center'});}
+  const moveToTarget=()=>{const element=steps[step].target?document.querySelector<HTMLElement>(steps[step].target):null;if(!element)return;const bounds=element.getBoundingClientRect();if(bounds.top<72||bounds.bottom>window.innerHeight-72){element.scrollIntoView({behavior:'smooth',block:'center'});}};
+  const scrollTimer=window.setInterval(moveToTarget,500);moveToTarget();
   const timer=window.setInterval(update,350);update();
-  return()=>{window.clearInterval(timer);highlighted?.classList.remove('spats-tour-highlighted')}
+  return()=>{window.clearInterval(timer);window.clearInterval(scrollTimer);highlighted?.classList.remove('spats-tour-highlighted')}
  },[step,pathname]);
  const navigate=(n:number)=>{setStep(n);const next=steps[n];if(next.href)router.push(next.href)};
  useEffect(()=>{if(step!==3)return;const check=()=>{const total=document.querySelector<HTMLElement>('[data-tour="weight-total"]');const selected=document.querySelectorAll('[data-tour="weight-row"]').length;setValidWeights(selected>0&&total?.dataset.total==='1.000')};check();const interval=window.setInterval(check,250);return()=>window.clearInterval(interval)},[step,pathname]);
