@@ -13,7 +13,7 @@ export function simulateCfb(games:Game[],odds:OddsGame[],weights:WeightMap,marke
  const history=new Map<string,Array<{date:string;scored:number;allowed:number}>>();
  for(const g of [...games].sort((a,b)=>a.date.localeCompare(b.date))){if(!score(g))continue;for(const [team,scored,allowed] of [[g.home,g.homeScore!,g.awayScore!],[g.away,g.awayScore!,g.homeScore!]] as [string,number,number][])history.set(key(team),[...(history.get(key(team))||[]),{date:g.date,scored,allowed}])}
  const rows:BetRow[]=[];let matched=0,eligible=0,unpriced=0,unmatched=0,unprojected=0;
- for(const p of preds){if(!score(p))continue;const game=odds.find(o=>same(o.home,p.home)&&same(o.away,p.away)&&Math.abs(new Date(o.date).getTime()-new Date(p.date).getTime())<=36*3600000);if(!game){unmatched++;continue}matched++;
+ for(const p of preds){if(!score(p))continue;const game=odds.find(o=>o.id===p.id)||odds.find(o=>same(o.home,p.home)&&same(o.away,p.away)&&Math.abs(new Date(o.date).getTime()-new Date(p.date).getTime())<=36*3600000);if(!game){unmatched++;continue}matched++;
  const options=providerPreference?game.lines.filter(l=>l.provider===providerPreference):game.lines;
  const line=options.find(l=>market==='moneyline'?l.homeMoneyline!==null&&l.awayMoneyline!==null:market==='spread'?l.spread!==null:l.overUnder!==null);
  if(!line){unpriced++;continue}
