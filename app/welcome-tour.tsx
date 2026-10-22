@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useState} from 'react';
 import type {User} from '@supabase/supabase-js';
+import {useRouter,usePathname} from 'next/navigation';
 
 const steps=[
  {title:'Welcome to SPATS',description:'Build your own sports prediction models, explore historical results, and learn how betting markets work. This quick tour will show you where to start.',target:'.spats-auth-mark'},
@@ -14,6 +15,7 @@ const steps=[
  {title:'You’re ready to explore!',description:'You can restart this tour anytime using the Take a Tour button. Remember: SPATS is an educational analytics tool, not a promise of winning bets.',target:'.nfl-tabs',href:'/football?tab=builder'}
 ];
 export default function WelcomeTour({user}:{user:User}){
+ const router=useRouter();const pathname=usePathname();
  const [step,setStep]=useState<number|null>(null);
  const [rect,setRect]=useState<{top:number;left:number;width:number;height:number}|null>(null);
  const key='spats-tour-v1-'+user.id;
@@ -23,9 +25,9 @@ export default function WelcomeTour({user}:{user:User}){
   const update=()=>{const el=document.querySelector(steps[step].target);if(!el){setRect(null);return}const r=el.getBoundingClientRect();setRect(r.width&&r.height?{top:r.top,left:r.left,width:r.width,height:r.height}:null)};
   update();window.addEventListener('resize',update);window.addEventListener('scroll',update,true);
   return()=>{window.removeEventListener('resize',update);window.removeEventListener('scroll',update,true)}
- },[step]);
+ },[step,pathname]);
  const finish=()=>{localStorage.setItem(key,'done');setStep(null)};
- const next=()=>{if(step===null)return;if(step===steps.length-1)finish();else setStep(step+1)};
+ const next=()=>{if(step===null)return;if(step===steps.length-1)finish();else {const upcoming=steps[step+1];setStep(step+1);if(upcoming.href)router.push(upcoming.href)}};
  return <>
   <button className="spats-tour-restart" type="button" onClick={()=>setStep(0)}>ⓘ Take a Tour</button>
   {step!==null&&<div className="spats-tour-overlay" role="dialog" aria-modal="true" aria-label="SPATS welcome walkthrough">
@@ -36,7 +38,7 @@ export default function WelcomeTour({user}:{user:User}){
     <div className="spats-tour-progress"><span style={{width:((step+1)/steps.length*100)+'%'}}/></div>
     <small>STEP {step+1} OF {steps.length}</small>
     <h2>{steps[step].title}</h2><p>{steps[step].description}</p>
-    <div className="spats-tour-actions"><button type="button" disabled={step===0} onClick={()=>setStep(Math.max(0,step-1))}>Back</button><button type="button" className="primary" onClick={next}>{step===steps.length-1?'Finish Tour':'Next →'}</button></div>
+    <div className="spats-tour-actions"><button type="button" disabled={step===0} onClick={()=>{const previous=Math.max(0,step-1);setStep(previous);if(steps[previous].href)router.push(steps[previous].href)}}>Back</button><button type="button" className="primary" onClick={next}>{step===steps.length-1?'Finish Tour':'Next →'}</button></div>
    </section>
   </div>}
  </>;
