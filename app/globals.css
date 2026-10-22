@@ -513,3 +513,14 @@
 .spats-tour-actions button.primary{background:#e4b957;border-color:#e4b957;color:#14243b}
 .spats-tour-actions button:disabled{opacity:.4;cursor:not-allowed}
 @media(max-width:600px){.spats-tour-card{padding:20px}.spats-tour-restart{bottom:12px;right:12px}}
+
+/* Interactive tour: real illuminated targets, unobstructed controls and adaptive card placement */
+.spats-tour-overlay{pointer-events:none;display:block;padding:0}
+.spats-tour-card{pointer-events:auto;max-height:calc(100dvh - 24px);overflow:auto;z-index:1003}
+.spats-tour-card button{pointer-events:auto}
+.spats-tour-shade{pointer-events:none}
+.spats-tour-spotlight{z-index:1001;pointer-events:none;border:2px solid #ffd579;border-radius:12px;box-shadow:0 0 0 9999px rgba(2,8,19,.78),0 0 30px 9px rgba(255,207,95,.36);transition:top .22s,left .22s,width .22s,height .22s}
+.spats-tour-highlighted{position:relative!important;z-index:1002!important;isolation:isolate;filter:brightness(1.3) saturate(1.15);box-shadow:0 0 0 5px rgba(255,215,117,.5),0 0 32px rgba(255,204,93,.48)!important;border-radius:10px}
+.spats-tour-hint{padding:9px 12px;border:1px solid #54769b;border-radius:8px;background:#213958;color:#f5db9b!important;font-size:13px!important}
+.spats-tour-success{color:#8ff2bd!important;font-weight:750}
+@media(max-width:700px){.spats-tour-card{max-height:45dvh}.spats-tour-highlighted{scroll-margin-bottom:48dvh}}
