@@ -26,13 +26,19 @@ export function rankAdvisorModels(games:Game[]):{top:AdvisorResult[];tested:numb
  if(finals.length<60)return {top:[],tested:0,training:0,validation:0,holdout:0,warning:'At least 60 completed games are required across the available seasons.'};
  const trainEnd=finals[Math.floor(finals.length*.6)]?.date||'',validationEnd=finals[Math.floor(finals.length*.8)]?.date||'';
  const candidates=candidateModels(),ranked:AdvisorResult[]=[];
+ // Cache each pregame metric edge once; thousands of combinations then need only dot products.
+ const basis=metrics.map(m=>backtest(games,{[m.key]:1}).filter(p=>p.correct!==null));
+ const indexed=metrics.map((_,i)=>new Map(basis[i].map(p=>[p.id,p.edge])));
+ const reference=basis[0].filter(p=>indexed.every(map=>map.has(p.id)));
+ const observations=reference.map(p=>({date:p.date,homeWon:(p.homeScore??0)>(p.awayScore??0),features:metrics.map((_,i)=>indexed[i].get(p.id)??0)}));
+ const training=observations.filter(p=>p.date<trainEnd),validation=observations.filter(p=>p.date>=trainEnd&&p.date<validationEnd),holdout=observations.filter(p=>p.date>=validationEnd);
+ if(training.length<20||validation.length<10||holdout.length<10)return {top:[],tested:0,training:training.length,validation:validation.length,holdout:holdout.length,warning:'Not enough eligible predictions for independent training, validation and holdout periods.'};
+ const grade=(rows:typeof observations,vector:number[])=>rows.reduce((wins,p)=>{let edge=0;for(let i=0;i<vector.length;i++)edge+=vector[i]*p.features[i];return wins+Number((edge>=0)===p.homeWon)},0);
  for(const c of candidates){
-  const predictions=backtest(games,c.weights).filter(p=>p.correct!==null);
-  const training=predictions.filter(p=>p.date<trainEnd),validation=predictions.filter(p=>p.date>=trainEnd&&p.date<validationEnd),holdout=predictions.filter(p=>p.date>=validationEnd);
-  if(training.length<20||validation.length<10||holdout.length<10)continue;
-  const wins=validation.filter(p=>p.correct===true).length,holdoutWins=holdout.filter(p=>p.correct===true).length;
-  ranked.push({name:c.name,weights:c.weights,accuracy:100*wins/validation.length,games:predictions.length,holdout:validation.length,wins,trainingAccuracy:100*training.filter(p=>p.correct===true).length/training.length,holdoutAccuracy:100*holdoutWins/holdout.length,holdoutWins,holdoutGames:holdout.length});
+  const vector=metrics.map(m=>Number(c.weights[m.key]||0));
+  const trainWins=grade(training,vector),wins=grade(validation,vector),holdoutWins=grade(holdout,vector);
+  ranked.push({name:c.name,weights:c.weights,accuracy:100*wins/validation.length,games:observations.length,holdout:validation.length,wins,trainingAccuracy:100*trainWins/training.length,holdoutAccuracy:100*holdoutWins/holdout.length,holdoutWins,holdoutGames:holdout.length});
  }
  ranked.sort((a,b)=>b.accuracy-a.accuracy||b.wins-a.wins||b.trainingAccuracy-a.trainingAccuracy||a.name.localeCompare(b.name));
- return {top:ranked.slice(0,5),tested:ranked.length,training:finals.filter(g=>g.date<trainEnd).length,validation:finals.filter(g=>g.date>=trainEnd&&g.date<validationEnd).length,holdout:finals.filter(g=>g.date>=validationEnd).length,warning:'Models are ranked on validation accuracy. The last 20% of games is an untouched holdout for reporting; the top models were not selected using holdout scores. Games are processed chronologically.'};
+ return {top:ranked.slice(0,5),tested:ranked.length,training:finals.filter(g=>g.date<trainEnd).length,validation:finals.filter(g=>g.date>=trainEnd&&g.date<validationEnd).length,holdout:finals.filter(g=>g.date>=validationEnd).length,warning:'Models are ranked on validation accuracy. The last 20% of games is an untouched holdout for reporting; the top models were not selected using holdout scores. Games are processed chronologically. Cached metric contributions accelerate the search; very close picks can differ slightly from full-precision backtests.'};
 }
