@@ -27,7 +27,7 @@ export const metrics:{key:Metric;label:string;description:string;scale:number;di
  {key:'home_margin',label:'Home Point Differential',description:'Average scoring margin at home; overall fallback when no home games',scale:15,direction:1},
  {key:'away_margin',label:'Away Point Differential',description:'Average scoring margin away; overall fallback when no road games',scale:15,direction:1}
 ];
-export type Game={id:string;date:string;home:string;away:string;homeScore:number|null;awayScore:number|null;neutral:boolean;final:boolean};
+export type Game={id:string;date:string;week?:number;home:string;away:string;homeScore:number|null;awayScore:number|null;neutral:boolean;final:boolean};
 export type Prediction=Game&{pick:string;edge:number;correct:boolean|null;homeGames:number;awayGames:number};
 export type WeightMap=Partial<Record<Metric,number>>;
 export const cfbMetrics=metrics;
