@@ -5,12 +5,11 @@ const canon=(s:string)=>s.toLowerCase().replace(/\b(university|college|the|of|at
 const aliases:Record<string,string>={olemiss:'mississippi',mississippi:'mississippi',ucf:'centralflorida',centralflorida:'centralflorida',utsa:'texassanantonio',texassanantonio:'texassanantonio',uconn:'connecticut',connecticut:'connecticut',smu:'southernmethodist',southernmethodist:'southernmethodist',byu:'brighamyoung',brighamyoung:'brighamyoung',usf:'southflorida',southflorida:'southflorida',lsu:'louisianastate',louisianastate:'louisianastate',pitt:'pittsburgh',pittsburgh:'pittsburgh',unlv:'nevadalasvegas',nevadalasvegas:'nevadalasvegas',umass:'massachusetts',massachusetts:'massachusetts',appstate:'appalachianstate',appalachianstate:'appalachianstate',fau:'floridaatlantic',floridaatlantic:'floridaatlantic',fiu:'floridainternational',floridainternational:'floridainternational',ulm:'louisianamonroe',louisianamonroe:'louisianamonroe',ull:'louisiana',louisianalafayette:'louisiana',louisiana:'louisiana',texasam:'texasam',texasaandm:'texasam',ncstate:'northcarolinastate',northcarolinastate:'northcarolinastate',southernmiss:'southernmississippi',southernmississippi:'southernmississippi',miamioh:'miamiohio',miamiohio:'miamiohio'};
 const key=(s:string)=>aliases[canon(s)]||canon(s);
 const same=(a:string,b:string)=>key(a)===key(b);
-const date=(s:string)=>s.slice(0,10);
 const americanProfit=(price:number,stake:number)=>price>0?stake*price/100:stake*100/Math.abs(price);
 const score=(g:Game)=>g.final&&g.homeScore!==null&&g.awayScore!==null;
 export function simulateCfb(games:Game[],odds:OddsGame[],weights:WeightMap,market:'moneyline'|'spread'|'total',stake:number,minimum:number,providerPreference=''): {rows:BetRow[];matched:number;eligible:number;unpriced:number;unmatched:number;unprojected:number;summary:{bets:number;wins:number;losses:number;pushes:number;profit:number;risked:number;roi:number}}{
  const preds=backtest(games,weights);
- const bySeason=new Map<number,Game[]>();for(const g of games){const year=Number(g.date.slice(0,4));bySeason.set(year,[...(bySeason.get(year)||[]),g])}
+ 
  const history=new Map<string,Array<{date:string;scored:number;allowed:number}>>();
  for(const g of [...games].sort((a,b)=>a.date.localeCompare(b.date))){if(!score(g))continue;for(const [team,scored,allowed] of [[g.home,g.homeScore!,g.awayScore!],[g.away,g.awayScore!,g.homeScore!]] as [string,number,number][])history.set(key(team),[...(history.get(key(team))||[]),{date:g.date,scored,allowed}])}
  const rows:BetRow[]=[];let matched=0,eligible=0,unpriced=0,unmatched=0,unprojected=0;
