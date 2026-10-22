@@ -524,3 +524,9 @@
 .spats-tour-hint{padding:9px 12px;border:1px solid #54769b;border-radius:8px;background:#213958;color:#f5db9b!important;font-size:13px!important}
 .spats-tour-success{color:#8ff2bd!important;font-weight:750}
 @media(max-width:700px){.spats-tour-card{max-height:45dvh}.spats-tour-highlighted{scroll-margin-bottom:48dvh}}
+
+/* Tour viewport guard: navigation always remains visible, including on short mobile screens */
+.spats-tour-card{display:flex;flex-direction:column;max-height:calc(100dvh - 24px)!important;overflow-y:auto;overscroll-behavior:contain;padding-bottom:16px}
+.spats-tour-actions{position:sticky;bottom:-16px;z-index:3;background:#12223c;padding:12px 0 4px;margin-top:auto;flex-shrink:0}
+.spats-tour-actions button{min-height:42px}
+@media(max-height:650px){.spats-tour-card{padding:14px 18px}.spats-tour-card h2{font-size:20px;margin:6px 0}.spats-tour-card p{font-size:13px;line-height:1.4}.spats-tour-progress{margin:9px 0 12px}.spats-tour-actions{bottom:-14px}}
