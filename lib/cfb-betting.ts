@@ -20,6 +20,7 @@ export function simulateCfb(games:Game[],odds:OddsGame[],weights:WeightMap,marke
  const h=(history.get(key(p.home))||[]).filter(x=>x.date<p.date).slice(-5),a=(history.get(key(p.away))||[]).filter(x=>x.date<p.date).slice(-5);
  const avg=(arr:number[])=>arr.reduce((x,y)=>x+y,0)/Math.max(1,arr.length);
  let pick='',label='',outcome:'Win'|'Loss'|'Push',price=0,method='Saved model winner';
+ let marketEdge=Math.abs(p.edge);
  if(market==='moneyline'){
   pick=p.pick;price=p.pick===p.home?line.homeMoneyline!:line.awayMoneyline!;label=price>0?'+'+price:String(price);
   if(!Number.isFinite(price)||price===0){unpriced++;continue}
@@ -30,6 +31,7 @@ export function simulateCfb(games:Game[],odds:OddsGame[],weights:WeightMap,marke
   const awayExpected=(avg(a.map(x=>x.scored))+avg(h.map(x=>x.allowed)))/2;
   if(market==='spread'){
    const projectedMargin=homeExpected-awayExpected;
+   marketEdge=Math.abs(projectedMargin+line.spread!)/Math.max(7,(homeExpected+awayExpected)*.20);
    const homeCover=projectedMargin+line.spread!>0;
    if(Math.abs(projectedMargin+line.spread!)<0.0001){unprojected++;continue}
    pick=(homeCover?p.home:p.away)+' ATS';label=(line.spread!>0?'+':'')+line.spread;
@@ -37,6 +39,7 @@ export function simulateCfb(games:Game[],odds:OddsGame[],weights:WeightMap,marke
    outcome=actual===0?'Push':(actual>0)===homeCover?'Win':'Loss';method='Pregame 5-game scoring projection (not saved-model spread forecast)';
   }else{
    const projectedTotal=homeExpected+awayExpected;
+   marketEdge=Math.abs(projectedTotal-line.overUnder!)/Math.max(7,projectedTotal*.20);
    if(Math.abs(projectedTotal-line.overUnder!)<0.0001){unprojected++;continue}
    const over=projectedTotal>line.overUnder!;pick=over?'Over':'Under';label=String(line.overUnder);
    const actual=p.homeScore!+p.awayScore!-line.overUnder!;
@@ -44,8 +47,10 @@ export function simulateCfb(games:Game[],odds:OddsGame[],weights:WeightMap,marke
   }
   price=-110; // CFBD does not provide spread/total juice; explicitly hypothetical
  }
- const confidence=Math.abs(p.edge)>=.65?'High':Math.abs(p.edge)>=.3?'Medium':'Low';
- const confidenceScore=Math.round(50+40*Math.min(1,Math.abs(p.edge)/.65));
+ // For spread and total, use the projected edge against that market's line.
+ // This is a relative score, not a calibrated probability of winning.
+ const confidence=marketEdge>=.65?'High':marketEdge>=.3?'Medium':'Low';
+ const confidenceScore=Math.round(50+40*Math.min(1,marketEdge/.65));
  if(confidenceScore<minimum)continue;
  eligible++;
  const profit=outcome==='Push'?0:outcome==='Win'?americanProfit(price,stake):-stake;
