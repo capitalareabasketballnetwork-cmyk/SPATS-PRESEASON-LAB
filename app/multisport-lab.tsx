@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useMemo,useState} from 'react';
 import Link from 'next/link';
+import LeagueTools from './league-tools';
 import {db} from '../lib/supabase';
 import {leagues,metrics,backtest,normalizeWeights,initialWeights,type League,type Game,type Metric,type WeightMap,type Prediction} from '../lib/multisport-model';
 type Saved={name:string;weights:WeightMap;season:number};
@@ -39,7 +40,7 @@ export default function MultisportLab({league}:{league:League}){
  <h3>Save your model <span className="spats-league-stamp">{stamps[league]}</span></h3><label>Model name <input value={name} maxLength={70} placeholder={'My '+config.name+' Model'} onChange={e=>setName(e.target.value)}/></label><button className="primary" disabled={!name.trim()} onClick={save}>Save to SPATS account</button><p className="note">Saved models are available on your account only within this league.</p>{saveStatus&&<p className="notice" role="status">{saveStatus}</p>}</>}</section></div>}
  {tab==='explorer'&&<section className="panel"><h2>Game Explorer</h2><p className="note">Compute a model in the Model Lab first to view predictions. Future matchups appear only if the source supplies a schedule and both teams have enough prior games. Confidence tiers describe relative model-edge strength, not calibrated win probabilities.</p>{!result?<button className="primary" onClick={()=>setTab('builder')}>Go to Model Lab</button>:<><p>{current.length} upcoming or ungraded predictions · {graded.length} graded games</p><div className="nfl-table"><table><thead><tr><th>Date</th><th>Matchup</th><th>Model pick</th><th>Edge</th><th>Confidence</th><th>Result</th></tr></thead><tbody>{[...result].reverse().slice(0,150).map(g=><tr key={g.id}><td>{g.date.slice(0,10)}</td><td>{g.away} @ {g.home}</td><td>{g.pick}</td><td>{g.edge.toFixed(3)}</td><td><span className={'nfl-upcoming-confidence nfl-confidence-'+(confidence(g.edge)==='High'?'high':confidence(g.edge)==='Medium'?'medium':'low')}>{confidence(g.edge)}</span></td><td>{g.correct===null?'Not graded':g.correct?'Correct':'Incorrect'}</td></tr>)}</tbody></table></div></>}</section>}
 
- {tab==='odds'&&<section className="panel"><h2>Odds Calculator</h2><p className="note">Moneyline, Spread and Over/Under are available on the dedicated league calculator page.</p><Link className="primary" href={"/"+league+"/odds"}>Open Odds Calculator →</Link></section>}
+ {tab==='odds'&&<div className="spats-odds-inline"><LeagueTools league={league} mode="odds"/></div>}
  {tab==='saved'&&<section className="panel"><h2>Saved {config.name} Models</h2>{saved.length===0?<p className="note">No saved models yet. Build one and save it from the Model Lab.</p>:<div className="spats-saved-grid">{saved.map(model=><div className="spats-saved-item" key={model.name}><strong><span className="spats-league-stamp">{stamps[league]}</span> {model.name}</strong><p>{model.season} season · {Object.keys(model.weights).length} statistics</p><button className="primary" onClick={()=>selectModel(model)}>Load model</button><button className="secondary" onClick={()=>void removeModel(model)}>Delete</button></div>)}</div>}</section>}
  </main>;
 }
