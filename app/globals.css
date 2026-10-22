@@ -560,3 +560,19 @@
 .spats-multi .spats-bet-confidence-high{background:#235c48;color:#caffdf}
 .spats-multi .spats-bet-confidence-mid{background:#5a4a27;color:#ffebad}
 .spats-multi .spats-bet-confidence-low{background:#35445a;color:#d5e5f9}
+
+
+/* Multisport advisor: grade actual validation/holdout accuracy, not ranking position. */
+.spats-multi .nfl-advisor-top-five button.spats-advisor-strong{background:#123e31;border:2px solid #36bd7c;color:#dcffeb}
+.spats-multi .nfl-advisor-top-five button.spats-advisor-moderate{background:#493d21;border:2px solid #d7b454;color:#fff1c9}
+.spats-multi .nfl-advisor-top-five button.spats-advisor-weak{background:#4a222d;border:2px solid #e66b77;color:#ffe6ea}
+.spats-multi .nfl-advisor-top-five button.active{outline:3px solid #d7e8ff;outline-offset:2px}
+.spats-multi .nfl-advisor-top-five button strong,.spats-multi .nfl-advisor-top-five button small,.spats-multi .nfl-advisor-top-five button span{color:inherit}
+.spats-multi .spats-advisor-score{border:2px solid;border-radius:14px;padding:18px}
+.spats-multi .spats-advisor-score.spats-advisor-strong{background:#123e31;border-color:#36bd7c;color:#dcffeb}
+.spats-multi .spats-advisor-score.spats-advisor-moderate{background:#493d21;border-color:#d7b454;color:#fff1c9}
+.spats-multi .spats-advisor-score.spats-advisor-weak{background:#4a222d;border-color:#e66b77;color:#ffe6ea}
+.spats-multi .spats-advisor-accuracy{display:inline-block;padding:5px 10px;border-radius:8px;font-weight:850;white-space:nowrap}
+.spats-multi .spats-advisor-accuracy.spats-advisor-strong{background:#1c6448;color:#dcffeb}
+.spats-multi .spats-advisor-accuracy.spats-advisor-moderate{background:#665125;color:#fff1c9}
+.spats-multi .spats-advisor-accuracy.spats-advisor-weak{background:#71303b;color:#ffe6ea}
