@@ -530,3 +530,17 @@
 .spats-tour-actions{position:sticky;bottom:-16px;z-index:3;background:#12223c;padding:12px 0 4px;margin-top:auto;flex-shrink:0}
 .spats-tour-actions button{min-height:42px}
 @media(max-height:650px){.spats-tour-card{padding:14px 18px}.spats-tour-card h2{font-size:20px;margin:6px 0}.spats-tour-card p{font-size:13px;line-height:1.4}.spats-tour-progress{margin:9px 0 12px}.spats-tour-actions{bottom:-14px}}
+
+/* Multisport pages share the NFL control styling, including dropdowns and model stamps. */
+.spats-multi .panel select,.spats-multi .panel input:not([type=checkbox]):not([type=range]),.spats-multi .nfl-odds-survey select,.spats-multi .nfl-odds-survey input{box-sizing:border-box;min-height:43px;padding:10px 13px;border:1px solid #607e9f;border-radius:10px;background:#1b3353;color:#f5f7fb;font-size:14px;font-weight:750}
+.spats-multi .panel select,.spats-multi .nfl-odds-survey select{cursor:pointer}
+.spats-multi .panel label{color:#c9d9ec}
+.spats-multi .panel select:focus-visible,.spats-multi .panel input:focus-visible,.spats-multi button:focus-visible{outline:2px solid #e6c47a;outline-offset:2px}
+.spats-multi .nfl-odds-survey button{min-height:43px}
+.spats-multi .nfl-odds-survey .nfl-unit-input input{background:transparent;border:0;padding-left:28px;width:100%}
+.spats-multi .nfl-odds-survey .nfl-unit-input{position:relative;display:block}
+.spats-multi .nfl-odds-survey .nfl-dollar-prefix{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#d4e0ee;z-index:1}
+.spats-multi .nfl-confidence-filter{margin-top:20px;padding:16px;border:1px solid #425f7d;border-radius:12px;background:#162b46}
+.spats-multi .nfl-confidence-filter input[type=range]{width:100%;margin:15px 0;accent-color:#e7c06b}
+.spats-league-stamp{display:inline-flex;align-items:center;justify-content:center;padding:3px 8px;margin-right:5px;border:1px solid #dfbe78;border-radius:6px;background:#403927;color:#ffe2a0;font-size:10px;font-weight:900;letter-spacing:.08em;vertical-align:middle}
+.spats-multi .nfl-upcoming-confidence{font-size:11px;padding:4px 10px}
