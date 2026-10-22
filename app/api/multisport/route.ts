@@ -16,25 +16,24 @@ async function loadGames(league:League,season:number):Promise<{games:Game[];requ
  const l=leagues[league];const base='https://site.api.espn.com/apis/site/v2/sports/'+l.sport+'/'+l.division+'/scoreboard?limit=1000';
  const urls:string[]=[];
  if(league==='college-football'){
-  for(let week=1;week<=16;week++)urls.push(base+'&dates='+season+'&seasontype=2&week='+week+'&groups=80');
-  for(let week=1;week<=5;week++)urls.push(base+'&dates='+season+'&seasontype=3&week='+week+'&groups=80');
+  for(const group of [80,81]){for(let week=1;week<=16;week++)urls.push(base+'&dates='+season+'&seasontype=2&week='+week+'&groups='+group);for(let week=1;week<=5;week++)urls.push(base+'&dates='+season+'&seasontype=3&week='+week+'&groups='+group)}
  }else{
-  const first=league==='nba'?season-1:season-1;
+  const first=season-1;
   const last=season;
   for(let year=first;year<=last;year++){
    const start=year===first?l.startMonth:1,end=year===last?l.endMonth:12;
    for(let month=start;month<=end;month++){
     const days=new Date(Date.UTC(year,month,0)).getUTCDate();
     const date=(d:number)=>String(year)+String(month).padStart(2,'0')+String(d).padStart(2,'0');
-    urls.push(base+'&dates='+date(1)+'-'+date(days)+(league==='college-basketball'?'&groups=50':''));
+    for(let day=1;day<=days;day+=7){const last=Math.min(days,day+6);urls.push(base+'&dates='+date(day)+'-'+date(last)+(league==='college-basketball'?'&groups=50':''));}
    }
   }
  }
- let failures=0;const lists=await Promise.all(urls.map(async url=>{
+ let failures=0;const lists:Game[][]=[];for(let index=0;index<urls.length;index+=12){const batch=await Promise.all(urls.slice(index,index+12).map(async url=>{
   try{const response=await fetch(url,{next:{revalidate:21600},signal:AbortSignal.timeout(12000)});if(!response.ok){failures++;return []}
    const data=await response.json() as {events?:Event[]};return (data.events||[]).map(parse).filter((x):x is Game=>!!x);
   }catch{failures++;return []}
- }));
+ }));lists.push(...batch)}
  const unique=new Map<string,Game>();for(const game of lists.flat())unique.set(game.id,game);
  return {games:[...unique.values()].sort((a,b)=>a.date.localeCompare(b.date)),requests:urls.length,failures};
 }
