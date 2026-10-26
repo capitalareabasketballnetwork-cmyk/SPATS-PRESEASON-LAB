@@ -602,3 +602,8 @@
 .spats-multi .spats-cfb-confidence .nfl-apply-optimum{margin:20px 0 15px;background:#473d2b;border:1px solid #f2ce79;color:#ffdd91;border-radius:8px;padding:11px 15px;font-weight:800;cursor:pointer}
 .spats-multi .spats-cfb-confidence .nfl-confidence-explainer{margin:0 0 12px;padding:13px 15px;border-left:3px solid #f2ce79;border-radius:7px;background:#213650;color:#b8cce6;font-size:12px;line-height:1.7}
 .spats-multi .spats-cfb-confidence .nfl-confidence-selected{margin-top:13px}
+
+/* Negative best historical confidence outcome: visible only when all thresholds lose. */
+.spats-multi .spats-cfb-negative-best{margin:15px 0 4px;padding:14px 16px;background:#42252e;border:1px solid #e6818d;border-left:4px solid #ef929b;border-radius:9px;color:#ffe7e9}
+.spats-multi .spats-cfb-negative-best strong{display:block;margin-bottom:5px;color:#ffc1c8;font-size:14px}
+.spats-multi .spats-cfb-negative-best p{margin:0;font-size:13px;line-height:1.6;color:#ffe0e4}
