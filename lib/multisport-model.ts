@@ -1,6 +1,6 @@
 export type League='college-football'|'college-basketball'|'nba';
 export const leagues={
- 'college-football':{name:'College Football',subtitle:'FBS game prediction lab',sport:'football',division:'college-football',seasons:Array.from({length:2026-2002+1},(_,i)=>2002+i),startMonth:8,endMonth:1,kind:'football'},
+ 'college-football':{name:'College Football',subtitle:'FBS game prediction lab',sport:'football',division:'college-football',seasons:Array.from({length:2026-2010+1},(_,i)=>2010+i),startMonth:8,endMonth:1,kind:'football'},
  'college-basketball':{name:'College Basketball',subtitle:'NCAA Division I men’s game prediction lab',sport:'basketball',division:'mens-college-basketball',seasons:[2024,2025,2026,2027],startMonth:11,endMonth:4,kind:'basketball'},
  nba:{name:'NBA',subtitle:'Professional basketball game prediction lab',sport:'basketball',division:'nba',seasons:[2024,2025,2026,2027],startMonth:10,endMonth:6,kind:'basketball'}
 } as const;
