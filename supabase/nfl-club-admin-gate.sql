@@ -20,7 +20,7 @@ begin
  if not public.nfl_is_club_admin() then raise exception 'Only club administrators can create clubs'; end if;
  if length(trim(p_name)) not between 2 and 80 or length(trim(p_display_name)) not between 1 and 40 then raise exception 'Invalid name'; end if;
  loop
-  v_code:=upper(substr(encode(gen_random_bytes(8),'hex'),1,8));
+  v_code:=upper(substr(replace(gen_random_uuid()::text,'-',''),1,8));
   begin
    insert into public.nfl_clubs(name,invite_code,owner_id) values(trim(p_name),v_code,auth.uid()) returning id into v_id;
    exit;
