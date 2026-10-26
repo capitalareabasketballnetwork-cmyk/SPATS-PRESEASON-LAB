@@ -15,7 +15,7 @@ const steps=[
  {title:'Try Upcoming Games',description:'Use This Week’s Picks or Upcoming Games to see predictions from your saved model. Confidence and historical profit are educational, not guaranteed future outcomes.',target:'.nfl-upcoming-link',href:'/football?tab=odds'},
  {title:'You are ready!',description:'Your model is saved to your account, ready to use throughout SPATS. You can restart the tour anytime from Take a Tour.',target:'',href:'/football?tab=builder'}
 ] as const;
-export default function WelcomeTour({user}:{user:User}){
+export default function WelcomeTour({user,autoStart=false}:{user:User;autoStart?:boolean}){
  const router=useRouter(),pathname=usePathname();
  const [step,setStep]=useState<number|null>(null);
  const [rect,setRect]=useState<{top:number;left:number;width:number;height:number}|null>(null);
@@ -23,7 +23,7 @@ export default function WelcomeTour({user}:{user:User}){
  const [savedName,setSavedName]=useState('');
  const [validWeights,setValidWeights]=useState(false);
  const key='spats-tour-v2-'+user.id;
- useEffect(()=>{if(!localStorage.getItem(key))setStep(0)},[key]);
+ useEffect(()=>{if(autoStart&&!localStorage.getItem(key))setStep(0)},[key,autoStart]);
  useEffect(()=>{
   if(step===null)return;
   const onComputed=()=>setStep(current=>current===4?5:current);
