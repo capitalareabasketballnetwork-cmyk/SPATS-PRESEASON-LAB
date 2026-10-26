@@ -19,6 +19,8 @@ export default function ClubPage(){
  const [busy,setBusy]=useState(false);
  const [standings,setStandings]=useState<{name:string;wins:number;graded:number;accuracy:number}[]>([]);
  const [loading,setLoading]=useState(true);
+ const [weeklyPicks,setWeeklyPicks]=useState<{game_id:string;predicted_winner:string;confidence:number|null;result:string|null;user_id:string;nfl_club_games:{week:number;home_team:string;away_team:string;kickoff_at:string}|null}[]>([]);
+ const [memberNames,setMemberNames]=useState<Record<string,string>>({});
  useEffect(()=>{let active=true;async function load(){
   if(!db){setMessage('Supabase is not configured.');setLoading(false);return}
   const {data:{user}}=await db.auth.getUser();
@@ -75,6 +77,11 @@ export default function ClubPage(){
   });
   rows.sort((a,b)=>b.accuracy-a.accuracy||b.wins-a.wins||a.name.localeCompare(b.name));
   setStandings(rows);
+  setMemberNames(Object.fromEntries((members.data||[]).map(m=>[m.user_id,m.display_name])));
+  const {data:allPicks,error:pickError}=await db.from('nfl_club_picks').select('game_id,user_id,predicted_winner,confidence,result,nfl_club_games(week,home_team,away_team,kickoff_at)').eq('club_id',selectedClub).order('generated_at',{ascending:false}).limit(100);
+  if(!alive)return;
+  if(pickError)setMessage(pickError.message);
+  else setWeeklyPicks((allPicks||[]) as unknown as typeof weeklyPicks);
  }void load();return()=>{alive=false}},[selectedClub]);
  const chosen=models.find(m=>m.name===selectedModel);
  return <main className="spats-home">
@@ -93,7 +100,7 @@ export default function ClubPage(){
     <button disabled={busy||!selectedClub||!selectedModel} onClick={()=>void submit()}>Submit selected model to club</button><p>Only submit models before the relevant game cutoff. Automated game picks are not yet enabled.</p>
     <Link href="/football?tab=saved">Open NFL saved models →</Link>
    </article>
-   <article className="spats-sport-card"><div className="eyebrow">WEEKLY PICKS</div><h2>Upcoming predictions</h2><p>Weekly picks, game-by-game outcomes and club consensus will appear here after the automated prediction service is connected.</p></article>
+   <article className="spats-sport-card"><div className="eyebrow">WEEKLY PICKS</div><h2>Weekly predictions</h2>{weeklyPicks.length?<ul>{weeklyPicks.map((p,i)=><li key={p.game_id+'-'+p.user_id+'-'+i}><strong>{memberNames[p.user_id]||'Member'}</strong> · Week {p.nfl_club_games?.week||'?'} · {p.nfl_club_games?.away_team} @ {p.nfl_club_games?.home_team} · Pick: {p.predicted_winner} {p.confidence!=null?'('+p.confidence+'% confidence)':''} · {p.result||'Pending'}</li>)}</ul>:<p>No generated predictions yet. Opponents’ picks become visible at kickoff.</p>}</article>
    <article className="spats-sport-card"><div className="eyebrow">SEASON STANDINGS</div><h2>Leaderboard</h2>{standings.length?<ol>{standings.map((m,i)=><li key={i}>{m.name}: {m.graded?(m.accuracy*100).toFixed(1)+'%':'Not ranked'} ({m.wins}/{m.graded})</li>)}</ol>:<p>No club standings available yet.</p>}<p>Only completed, graded picks count. Ties and voids are excluded.</p></article>
   </section>
   {message&&<p role="status">{message}</p>}
