@@ -586,3 +586,9 @@
 .spats-multi .nfl-score.nfl-quality-strong{background:#143e30;border-color:#36bb82;color:#e5ffed}
 .spats-multi .nfl-score.nfl-quality-moderate{background:#463c22;border-color:#caa85a;color:#fff0c4}
 .spats-multi .nfl-score.nfl-quality-weak{background:#4b232c;border-color:#ed7580;color:#ffe6e8}
+
+.spats-multi .spats-historical-best{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;margin-top:18px;border:1px solid #4f9879;border-radius:13px;background:#163d32;color:#e2ffef}
+.spats-multi .spats-historical-best>div{display:flex;flex-direction:column;gap:4px}
+.spats-multi .spats-historical-best strong{color:#aff7c8;font-size:15px}
+.spats-multi .spats-historical-best span{font-weight:800;font-size:18px}
+.spats-multi .spats-historical-best .note{flex-basis:100%;margin:0;color:#c4dfd0}
