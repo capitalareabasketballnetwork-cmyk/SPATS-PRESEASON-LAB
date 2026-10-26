@@ -592,3 +592,13 @@
 .spats-multi .spats-historical-best strong{color:#aff7c8;font-size:15px}
 .spats-multi .spats-historical-best span{font-weight:800;font-size:18px}
 .spats-multi .spats-historical-best .note{flex-basis:100%;margin:0;color:#c4dfd0}
+
+/* CFB confidence controls match the NFL odds calculator layout. */
+.spats-multi .spats-cfb-confidence{padding:18px 20px;margin:16px 0 20px;background:#182e4a;border:1px solid #47688b;border-radius:11px}
+.spats-multi .spats-cfb-confidence .nfl-confidence-optimum{position:relative;min-height:73px;margin-top:5px;border-bottom:1px dashed #426183}
+.spats-multi .spats-cfb-confidence .nfl-confidence-optimum-pointer{position:absolute;top:0;transform:translateX(-50%);color:#f2ce79;font-size:17px}
+.spats-multi .spats-cfb-confidence .nfl-confidence-optimum-label{position:absolute;top:21px;transform:translateX(-50%);width:180px;text-align:center;display:flex;flex-direction:column;gap:3px;font-size:11px;color:#f2ce79}
+.spats-multi .spats-cfb-confidence .nfl-confidence-optimum-label small{color:#dce8f6;font-size:11px}
+.spats-multi .spats-cfb-confidence .nfl-apply-optimum{margin:20px 0 15px;background:#473d2b;border:1px solid #f2ce79;color:#ffdd91;border-radius:8px;padding:11px 15px;font-weight:800;cursor:pointer}
+.spats-multi .spats-cfb-confidence .nfl-confidence-explainer{margin:0 0 12px;padding:13px 15px;border-left:3px solid #f2ce79;border-radius:7px;background:#213650;color:#b8cce6;font-size:12px;line-height:1.7}
+.spats-multi .spats-cfb-confidence .nfl-confidence-selected{margin-top:13px}
