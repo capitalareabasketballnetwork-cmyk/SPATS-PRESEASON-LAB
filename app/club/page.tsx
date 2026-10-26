@@ -1,5 +1,6 @@
 'use client';
 import {useEffect,useState} from 'react';
+import {useSearchParams} from 'next/navigation';
 import Link from 'next/link';
 import {db} from '../../lib/supabase';
 
@@ -7,6 +8,7 @@ type SavedModel={name:string;model_data:{weights?:Record<string,number>;start?:n
 type Club={id:string;name:string;invite_code:string};
 type Submission={id:string;name:string;model_snapshot:Record<string,unknown>;active_from:string};
 export default function ClubPage(){
+ const requestedClub=useSearchParams().get('league');
  const [models,setModels]=useState<SavedModel[]>([]);
  const [clubs,setClubs]=useState<Club[]>([]);
  const [selectedClub,setSelectedClub]=useState('');
@@ -43,10 +45,10 @@ export default function ClubPage(){
   if(membership.error)setMessage(v=>v||'Club database is not yet configured: '+membership.error.message);
   else{
    const found=(membership.data||[]).flatMap(row=>{const raw=row.nfl_clubs;return raw?(Array.isArray(raw)?raw:[raw]):[]}) as Club[];
-   setClubs(found);if(found.length)setSelectedClub(found[0].id);
+   setClubs(found);if(found.length)setSelectedClub(found.find(c=>c.id===requestedClub)?.id||found[0].id);
   }
   setLoading(false);
- }void load();return()=>{active=false}},[]);
+ }void load();return()=>{active=false}},[requestedClub]);
  useEffect(()=>{let active=true;async function load(){
   if(!db||!selectedClub){setSubmission(null);return}
   const {data:{user}}=await db.auth.getUser();if(!user)return;
