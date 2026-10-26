@@ -52,6 +52,15 @@ export async function GET(req:NextRequest){
  if(!known(league)||!leagues[league].seasons.some(s=>s===season))return NextResponse.json({error:'Choose a supported league and season.'},{status:400});
  try{const data=await loadGames(league,season);
   if(!data.games.length)return NextResponse.json({error:'No verified games were returned for this season. The data source may be unavailable; no predictions were fabricated.',source:'ESPN public scoreboard',...data},{status:503});
+  if(league==='college-basketball'){
+   // Reject a completed season if the feed is clearly missing most Division I games.
+   // This is a sanity check, not a certification of complete NCAA coverage.
+   const finals=data.games.filter(g=>g.final);
+   const teams=new Set(finals.flatMap(g=>[g.home,g.away]));
+   const currentSeason=season===2027;
+   if(!currentSeason&&(finals.length<3500||teams.size<300))
+    return NextResponse.json({error:'Insufficient Division I game coverage for '+(season-1)+'–'+season+': '+finals.length+' completed games across '+teams.size+' team names. At least 3,500 finals and 300 teams are required before this season can be used in the model.',league,season,finals:finals.length,teams:teams.size},{status:503});
+  }
   if(data.failures)return NextResponse.json({error:'Incomplete '+season+' season: '+data.failures+' of '+data.requests+' scoreboard requests failed. This season is excluded from backtests rather than using partial results.',league,season,source:'ESPN public scoreboard',requests:data.requests,failures:data.failures,failedRequests:data.failedRequests.slice(0,8)},{status:503});
   return NextResponse.json({...data,league,season,source:'ESPN public scoreboard (game results and schedules)',coverageWarning:null});
  }catch(e){return NextResponse.json({error:e instanceof Error?e.message:'Unable to load games'},{status:502})}
