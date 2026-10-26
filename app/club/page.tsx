@@ -76,6 +76,11 @@ export default function ClubPage(){
    if(!db)throw Error('Supabase unavailable');
    const response=await fetch('/api/football',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({weights:model.model_data.weights,start:2026,end:2026})});
    const data=await response.json();if(!response.ok)throw Error(data.error||'Could not generate NFL predictions');
+   const {data:{session}}=await db.auth.getSession();
+   if(!session)throw Error('Sign in again to synchronize the league schedule.');
+   const syncResponse=await fetch('/api/club/schedule',{method:'POST',headers:{authorization:'Bearer '+session.access_token}});
+   const syncData=await syncResponse.json();
+   if(!syncResponse.ok)throw Error('NFL schedule sync failed: '+(syncData.error||syncResponse.status));
    const {data:schedule,error:scheduleError}=await db.from('nfl_club_games').select('game_id,week,kickoff_at,home_team,away_team').eq('season',2026).order('kickoff_at');
    if(scheduleError)throw scheduleError;
    const groups=new Map<number,typeof schedule>();for(const g of schedule||[]){groups.set(g.week,[...(groups.get(g.week)||[]),g])}
