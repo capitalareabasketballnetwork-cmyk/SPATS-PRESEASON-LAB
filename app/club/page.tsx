@@ -17,6 +17,7 @@ export default function ClubPage(){
  const [inviteCode,setInviteCode]=useState('');
  const [displayName,setDisplayName]=useState('');
  const [busy,setBusy]=useState(false);
+ const [standings,setStandings]=useState<{name:string;wins:number;graded:number;accuracy:number}[]>([]);
  const [loading,setLoading]=useState(true);
  useEffect(()=>{let active=true;async function load(){
   if(!db){setMessage('Supabase is not configured.');setLoading(false);return}
@@ -59,6 +60,22 @@ export default function ClubPage(){
    if(error)throw error;reload();
   }catch(e){setMessage(e instanceof Error?e.message:String(e))}finally{setBusy(false)}
  };
+ useEffect(()=>{let alive=true;async function load(){
+  if(!db||!selectedClub){setStandings([]);return}
+  const [members,picks]=await Promise.all([
+   db.from('nfl_club_members').select('user_id,display_name').eq('club_id',selectedClub),
+   db.from('nfl_club_picks').select('user_id,result').eq('club_id',selectedClub).in('result',['win','loss'])
+  ]);
+  if(!alive)return;
+  if(members.error||picks.error){setMessage(members.error?.message||picks.error?.message||'Unable to load standings');return}
+  const rows=(members.data||[]).map(m=>{
+   const graded=(picks.data||[]).filter(p=>p.user_id===m.user_id);
+   const wins=graded.filter(p=>p.result==='win').length;
+   return {name:m.display_name,wins,graded:graded.length,accuracy:graded.length?wins/graded.length:0}
+  });
+  rows.sort((a,b)=>b.accuracy-a.accuracy||b.wins-a.wins||a.name.localeCompare(b.name));
+  setStandings(rows);
+ }void load();return()=>{alive=false}},[selectedClub]);
  const chosen=models.find(m=>m.name===selectedModel);
  return <main className="spats-home">
   <section className="hero"><div className="eyebrow">SPATS · NFL MODEL COMPETITION</div><h1>CLUB <em>Competition</em></h1><p>Submit an existing saved NFL model and compete on weekly predictions. One active model per member; accuracy determines the season champion.</p></section>
@@ -77,7 +94,7 @@ export default function ClubPage(){
     <Link href="/football?tab=saved">Open NFL saved models →</Link>
    </article>
    <article className="spats-sport-card"><div className="eyebrow">WEEKLY PICKS</div><h2>Upcoming predictions</h2><p>Weekly picks, game-by-game outcomes and club consensus will appear here after the automated prediction service is connected.</p></article>
-   <article className="spats-sport-card"><div className="eyebrow">SEASON STANDINGS</div><h2>Leaderboard</h2><p>Season rankings will be based on correct predictions divided by graded predictions. No fabricated results or historical backtests will be shown as live scores.</p></article>
+   <article className="spats-sport-card"><div className="eyebrow">SEASON STANDINGS</div><h2>Leaderboard</h2>{standings.length?<ol>{standings.map((m,i)=><li key={i}>{m.name}: {m.graded?(m.accuracy*100).toFixed(1)+'%':'Not ranked'} ({m.wins}/{m.graded})</li>)}</ol>:<p>No club standings available yet.</p>}<p>Only completed, graded picks count. Ties and voids are excluded.</p></article>
   </section>
   {message&&<p role="status">{message}</p>}
  </main>;
