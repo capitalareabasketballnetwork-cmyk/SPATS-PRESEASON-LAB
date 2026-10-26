@@ -41,7 +41,7 @@ export default function ClubPage(){
   if(!active)return;
   setIsAdmin(adminStatus.data===true);
   if(saved.error)setMessage('Unable to load saved NFL models: '+saved.error.message);
-  else setModels((saved.data||[]) as SavedModel[]);
+  else setModels((saved.data||[]).filter(row=>!row.name.match(/^(CFB|CBB|NBA)::/i)&&!['college-football','college-basketball','nba','cfb','cbb'].includes(String(row.model_data?.league||'').toLowerCase())) as SavedModel[]);
   if(membership.error)setMessage(v=>v||'Club database is not yet configured: '+membership.error.message);
   else{
    const found=(membership.data||[]).flatMap(row=>{const raw=row.nfl_clubs;return raw?(Array.isArray(raw)?raw:[raw]):[]}) as Club[];
