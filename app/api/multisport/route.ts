@@ -29,11 +29,21 @@ async function loadGames(league:League,season:number):Promise<{games:Game[];requ
    }
   }
  }
- let failures=0;const failedRequests:string[]=[];const lists:Game[][]=[];for(let index=0;index<urls.length;index+=12){const batch=await Promise.all(urls.slice(index,index+12).map(async url=>{
-  try{const response=await fetch(url,{next:{revalidate:21600},signal:AbortSignal.timeout(12000)});if(!response.ok){failures++;failedRequests.push(url+' HTTP '+response.status);return []}
-   const data=await response.json() as {events?:Event[]};return (data.events||[]).map(parse).filter((x):x is Game=>!!x);
-  }catch{failures++;failedRequests.push(url+' timeout or network error');return []}
- }));lists.push(...batch)}
+ let failures=0;const failedRequests:string[]=[];const lists:Game[][]=[];
+ const request=async(url:string):Promise<Game[]>=>{
+  let lastFailure='unknown';
+  for(let attempt=0;attempt<3;attempt++){
+   try{
+    const response=await fetch(url,{next:{revalidate:21600},signal:AbortSignal.timeout(16000)});
+    if(response.ok){const data=await response.json() as {events?:Event[]};return (data.events||[]).map(parse).filter((x):x is Game=>!!x)}
+    lastFailure='HTTP '+response.status;
+    if(response.status===400||response.status===401||response.status===403||response.status===404)break;
+   }catch(e){lastFailure=e instanceof Error?e.message:'network error'}
+   if(attempt<2)await new Promise(resolve=>setTimeout(resolve,250*(attempt+1)));
+  }
+  failures++;failedRequests.push(url+' '+lastFailure);return [];
+ };
+ for(let index=0;index<urls.length;index+=8){const batch=await Promise.all(urls.slice(index,index+8).map(request));lists.push(...batch)}
  const unique=new Map<string,Game>();for(const game of lists.flat())unique.set(game.id,game);
  return {games:[...unique.values()].sort((a,b)=>a.date.localeCompare(b.date)),requests:urls.length,failures,failedRequests};
 }
