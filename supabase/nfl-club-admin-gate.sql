@@ -32,22 +32,9 @@ begin
 end $$;
 revoke all on function public.nfl_create_club(text,text) from public,anon;
 grant execute on function public.nfl_create_club(text,text) to authenticated;
--- Membership lasts until a member explicitly leaves.
-create or replace function public.nfl_leave_club(p_club_id uuid)
-returns void language plpgsql security definer set search_path=public as $$
-begin
- if auth.uid() is null then raise exception 'Sign in required'; end if;
- if exists(select 1 from public.nfl_clubs where id=p_club_id and owner_id=auth.uid()) then
-  raise exception 'Club owners cannot leave their club. Transfer or delete the club first.';
- end if;
- -- Preserve historical competition records; retire model and revoke membership.
- update public.nfl_club_models set retired_at=now()
- where club_id=p_club_id and user_id=auth.uid() and retired_at is null;
- delete from public.nfl_club_members where club_id=p_club_id and user_id=auth.uid();
-end $$;
-revoke all on function public.nfl_leave_club(uuid) from public,anon;
-grant execute on function public.nfl_leave_club(uuid) to authenticated;
--- Initial setup: replace the email with your exact Supabase Auth email and run once.
+-- Membership remains persistent across sessions. A separate leave flow must
+-- preserve historical picks before membership removal is enabled.
+-- Initial setup: replace with your Supabase Auth email and run once:
 -- insert into public.nfl_club_admins(user_id)
 -- select id from auth.users where email='YOUR_ADMIN_EMAIL_HERE'
 -- on conflict (user_id) do nothing;
