@@ -83,7 +83,7 @@ export default function ClubPage(){
    <article className="spats-sport-card"><div className="eyebrow">YOUR CLUB</div><h2>Club Membership</h2>
     {clubs.length?<><label htmlFor="club-choice">Select club</label><select id="club-choice" value={selectedClub} onChange={e=>setSelectedClub(e.target.value)}>{clubs.map(c=><option value={c.id} key={c.id}>{c.name}</option>)}</select></>:<p>You haven't joined an NFL competition club yet. Create a club or enter an invitation code below.</p>}
    </article>
-   <article className="spats-sport-card"><div className="eyebrow">YOUR SUBMISSION</div><h2>{submission?submission.name:'No active model'}</h2><p>{submission?'Your submitted model is stored as a competition snapshot.':'Choose an existing saved NFL model below. Submission opens when the secure club service is enabled.'}</p></article>
+   <article className="spats-sport-card"><div className="eyebrow">YOUR SUBMISSION</div><h2>{submission?submission.name:'No active model'}</h2><p>{submission?'Your submitted model is stored as a competition snapshot.':'Choose an existing saved NFL model below. Create or join a club, then submit a saved NFL model.'}</p></article>
    <article className="spats-sport-card"><div className="eyebrow">COMPETITION RULES</div><h2>Accuracy wins</h2><p>One active model per member. Picks are hidden from opponents until each game starts. Only live, pregame picks count.</p></article>
   </section>
   <section className="spats-sport-cards">
