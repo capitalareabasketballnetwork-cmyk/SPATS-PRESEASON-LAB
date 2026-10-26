@@ -1,6 +1,6 @@
 # NFL Club Competition — implementation plan and integration contract
 
-Status: database foundation only; **not yet operational or deployed**.
+Status: club membership and model submission implemented in code; **migration not applied, automated prediction/scoring not implemented, not production deployed**.
 
 ## Confirmed rules
 - NFL only; NBA remains out of scope.
@@ -11,9 +11,9 @@ Status: database foundation only; **not yet operational or deployed**.
 - Never score retroactive backtests as live competition picks.
 
 ## Remaining required integrations
-1. Locate the production NFL Model Lab's actual saved-model storage and prediction API. The present repository's existing builder is a *college basketball* ranking builder, not the NFL Model Lab. Do not pretend its saved models are NFL models.
-2. Implement Supabase Auth, authenticated club creation, invitation-code joining, member profiles, and server-side model submission. Use a single transaction to retire the previous active model and create the next version.
-3. Build the /club page with Overview, Leaderboard, Weekly Picks, My Model, Members, and Club Settings.
+1. NFL Model Lab saved models confirmed in `football_saved_models` and exposed in `/football`. Club UI reads these saved models; secure Supabase RPCs create/join clubs and submit snapshots.
+2. Apply `supabase/nfl-club.sql` to Supabase and verify authenticated create/join/submit flows, including permission boundaries. Existing site already provides Supabase Auth.
+3. Extend the `/club` page with real leaderboards, weekly picks, member profiles, and settings. Existing page includes club management and saved-model submission.
 4. Implement scheduled prediction jobs using the existing NFL engine and pregame-only feature snapshots. Persist source version and input cutoff. Never use future information.
 5. Store each game with authoritative kickoff time; lock picks before kickoff, never overwrite a locked pick, and expose opponent picks only once kickoff has passed.
 6. Implement final-score ingestion, idempotent grading, and clear error/retry logs. Rank by accuracy with a minimum graded-game threshold and show graded-game counts.
