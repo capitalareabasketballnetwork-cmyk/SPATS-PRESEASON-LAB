@@ -12,7 +12,7 @@ function parse(event:Event):Game|null{
  const hs=home.score===undefined||home.score===''?null:Number(home.score),as=away.score===undefined||away.score===''?null:Number(away.score);
  return {id:event.id,date:event.date,week:event.week?.number,home:home.team.shortDisplayName||home.team.displayName||'',away:away.team.shortDisplayName||away.team.displayName||'',homeScore:final&&hs!==null&&Number.isFinite(hs)?hs:null,awayScore:final&&as!==null&&Number.isFinite(as)?as:null,final:!!final&&hs!==null&&as!==null&&Number.isFinite(hs)&&Number.isFinite(as),neutral:!!competition?.neutralSite};
 }
-async function loadGames(league:League,season:number):Promise<{games:Game[];requests:number;failures:number}>{
+async function loadGames(league:League,season:number):Promise<{games:Game[];requests:number;failures:number;failedRequests:string[]}>{
  const l=leagues[league];const base='https://site.api.espn.com/apis/site/v2/sports/'+l.sport+'/'+l.division+'/scoreboard?limit=1000';
  const urls:string[]=[];
  if(league==='college-football'){
@@ -29,19 +29,20 @@ async function loadGames(league:League,season:number):Promise<{games:Game[];requ
    }
   }
  }
- let failures=0;const lists:Game[][]=[];for(let index=0;index<urls.length;index+=12){const batch=await Promise.all(urls.slice(index,index+12).map(async url=>{
-  try{const response=await fetch(url,{next:{revalidate:21600},signal:AbortSignal.timeout(12000)});if(!response.ok){failures++;return []}
+ let failures=0;const failedRequests:string[]=[];const lists:Game[][]=[];for(let index=0;index<urls.length;index+=12){const batch=await Promise.all(urls.slice(index,index+12).map(async url=>{
+  try{const response=await fetch(url,{next:{revalidate:21600},signal:AbortSignal.timeout(12000)});if(!response.ok){failures++;failedRequests.push(url+' HTTP '+response.status);return []}
    const data=await response.json() as {events?:Event[]};return (data.events||[]).map(parse).filter((x):x is Game=>!!x);
-  }catch{failures++;return []}
+  }catch{failures++;failedRequests.push(url+' timeout or network error');return []}
  }));lists.push(...batch)}
  const unique=new Map<string,Game>();for(const game of lists.flat())unique.set(game.id,game);
- return {games:[...unique.values()].sort((a,b)=>a.date.localeCompare(b.date)),requests:urls.length,failures};
+ return {games:[...unique.values()].sort((a,b)=>a.date.localeCompare(b.date)),requests:urls.length,failures,failedRequests};
 }
 export async function GET(req:NextRequest){
  const league=req.nextUrl.searchParams.get('league')||'',season=Number(req.nextUrl.searchParams.get('season'));
  if(!known(league)||!leagues[league].seasons.some(s=>s===season))return NextResponse.json({error:'Choose a supported league and season.'},{status:400});
  try{const data=await loadGames(league,season);
   if(!data.games.length)return NextResponse.json({error:'No verified games were returned for this season. The data source may be unavailable; no predictions were fabricated.',source:'ESPN public scoreboard',...data},{status:503});
-  return NextResponse.json({...data,league,season,source:'ESPN public scoreboard (game results and schedules)',coverageWarning:data.failures?'Some date/week requests failed. Backtests may be incomplete.':null});
+  if(data.failures)return NextResponse.json({error:'Incomplete '+season+' season: '+data.failures+' of '+data.requests+' scoreboard requests failed. This season is excluded from backtests rather than using partial results.',league,season,source:'ESPN public scoreboard',requests:data.requests,failures:data.failures,failedRequests:data.failedRequests.slice(0,8)},{status:503});
+  return NextResponse.json({...data,league,season,source:'ESPN public scoreboard (game results and schedules)',coverageWarning:null});
  }catch(e){return NextResponse.json({error:e instanceof Error?e.message:'Unable to load games'},{status:502})}
 }
