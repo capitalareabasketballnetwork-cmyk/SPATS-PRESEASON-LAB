@@ -9,7 +9,7 @@ export async function GET(req:NextRequest){
   const data=await r.json();
   const games=(data.events||[]).map((event:any)=>{
    const comp=event.competitions?.[0],home=comp?.competitors?.find((x:any)=>x.homeAway==='home'),away=comp?.competitors?.find((x:any)=>x.homeAway==='away');
-   return {id:String(event.id),date:event.date,name:event.name,status:event.status?.type?.shortDetail||event.status?.type?.description||'Scheduled',state:event.status?.type?.state||'pre',home:home?.team?.displayName||'Home',away:away?.team?.displayName||'Away',homeScore:home?.score??null,awayScore:away?.score??null,homeLogo:home?.team?.logo||null,awayLogo:away?.team?.logo||null};
+   return {id:String(event.id),date:event.date,name:event.name,status:event.status?.type?.shortDetail||event.status?.type?.description||'Scheduled',state:event.status?.type?.state||'pre',home:home?.team?.displayName||'Home',away:away?.team?.displayName||'Away',homeScore:home?.score??null,awayScore:away?.score??null,homeLogo:home?.team?.logo||null,awayLogo:away?.team?.logo||null,homeColor:home?.team?.color||null,awayColor:away?.team?.color||null};
   });
   let history:any[]=[];
   if(req.nextUrl.searchParams.get('history')==='1'){
