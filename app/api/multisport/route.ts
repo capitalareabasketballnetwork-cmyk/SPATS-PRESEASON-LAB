@@ -44,6 +44,22 @@ async function loadGames(league:League,season:number):Promise<{games:Game[];requ
   failures++;failedRequests.push(url+' '+lastFailure);return [];
  };
  for(let index=0;index<urls.length;index+=8){const batch=await Promise.all(urls.slice(index,index+8).map(request));lists.push(...batch)}
+ if(league==='college-basketball'&&lists.flat().length===0){
+  // ESPN sometimes returns HTTP 200 with zero events for long date ranges.
+  // Retry individual calendar days instead of treating empty ranges as complete seasons.
+  const days:string[]=[];
+  for(let year=season-1;year<=season;year++){
+   const firstMonth=year===season-1?11:1,lastMonth=year===season?4:12;
+   for(let month=firstMonth;month<=lastMonth;month++){
+    const max=new Date(Date.UTC(year,month,0)).getUTCDate();
+    for(let day=1;day<=max;day++)days.push(String(year)+String(month).padStart(2,'0')+String(day).padStart(2,'0'));
+   }
+  }
+  for(let index=0;index<days.length;index+=16){
+   const batch=await Promise.all(days.slice(index,index+16).map(d=>request(base+'&dates='+d+'&groups=50')));
+   lists.push(...batch);
+  }
+ }
  const unique=new Map<string,Game>();for(const game of lists.flat())unique.set(game.id,game);
  return {games:[...unique.values()].sort((a,b)=>a.date.localeCompare(b.date)),requests:urls.length,failures,failedRequests};
 }
