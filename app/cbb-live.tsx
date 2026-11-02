@@ -1,26 +1,44 @@
 'use client';
-import {useEffect,useState} from 'react';
+import {useEffect,useMemo,useState} from 'react';
+import Link from 'next/link';
+import {db} from '../lib/supabase';
+import {backtest,metrics,type Game as ModelGame,type WeightMap,type Prediction} from '../lib/multisport-model';
 type Game={id:string;date:string;status:string;state:string;home:string;away:string;homeScore:string|null;awayScore:string|null;homeLogo:string|null;awayLogo:string|null};
-export default function CbbLive(){
- const [games,setGames]=useState<Game[]>([]),[error,setError]=useState(''),[updated,setUpdated]=useState(''),[busy,setBusy]=useState(true),[onlyLive,setOnlyLive]=useState(false);
- useEffect(()=>{let active=true;const refresh=async()=>{try{const r=await fetch('/api/cbb-live',{cache:'no-store'});const d=await r.json();if(!r.ok)throw Error(d.error||'Feed unavailable');if(active){setGames(d.games||[]);setUpdated(d.updatedAt);setError('')}}catch(e){if(active)setError(String(e))}finally{if(active)setBusy(false)}};void refresh();const timer=setInterval(()=>void refresh(),60000);return()=>{active=false;clearInterval(timer)}},[]);
- const live=games.filter(g=>g.state==='in');const shown=onlyLive?live:games;
+type Saved={name:string;weights:WeightMap};
+const day=(d:Date)=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
+const shift=(s:string,n:number)=>{const d=new Date(s+'T12:00:00');d.setDate(d.getDate()+n);return day(d)};
+export default function CbbLive({savedModels=[]}:{savedModels?:Saved[]}){
+ const [date,setDate]=useState(()=>day(new Date())),[games,setGames]=useState<Game[]>([]),[history,setHistory]=useState<ModelGame[]>([]),[error,setError]=useState(''),[updated,setUpdated]=useState(''),[busy,setBusy]=useState(true),[onlyLive,setOnlyLive]=useState(false),[chosen,setChosen]=useState(''),[modal,setModal]=useState<Game|null>(null),[accountModels,setAccountModels]=useState<Saved[]>([]);
+ useEffect(()=>{let active=true;const load=async()=>{if(!db)return;const {data:{user}}=await db.auth.getUser();if(!user)return;const {data}=await db.from('football_saved_models').select('name,model_data').eq('user_id',user.id).like('name','CBB::%');if(active)setAccountModels((data||[]).filter(x=>x.model_data?.league==='college-basketball'&&x.model_data?.weights).map(x=>({name:String(x.model_data.displayName||x.name.slice(5)),weights:x.model_data.weights}))) };void load();return()=>{active=false}},[savedModels.length]);
+ const models=useMemo(()=>{const map=new Map<string,Saved>();for(const m of [...accountModels,...savedModels])map.set(m.name,m);return [...map.values()]},[accountModels,savedModels]);
+ useEffect(()=>{if(!models.some(m=>m.name===chosen))setChosen(models[0]?.name||'')},[models,chosen]);
+ useEffect(()=>{let active=true;setBusy(true);setHistory([]);const refresh=async()=>{try{const r=await fetch('/api/cbb-live?date='+date+'&history=1',{cache:'no-store'});const d=await r.json();if(!r.ok)throw Error(d.error||'Feed unavailable');if(active){setGames(d.games||[]);setHistory(d.history||[]);setUpdated(d.updatedAt);setError(d.historyComplete===false?'Historical data is unavailable; predictions are temporarily disabled.':'')}}catch(e){if(active)setError(String(e))}finally{if(active)setBusy(false)}};void refresh();const timer=setInterval(()=>void refresh(),60000);return()=>{active=false;clearInterval(timer)}},[date]);
+ const selected=models.find(m=>m.name===chosen);
+ const predictions=useMemo(()=>{if(!selected||!history.length)return new Map<string,Prediction>();const combined:ModelGame[]=[...history,...games.map(g=>({id:g.id,date:g.date,home:g.home,away:g.away,homeScore:g.state==='post'?Number(g.homeScore):null,awayScore:g.state==='post'?Number(g.awayScore):null,final:g.state==='post'&&g.homeScore!==null&&g.awayScore!==null,neutral:false}))];return new Map(backtest(combined,selected.weights).filter(p=>games.some(g=>g.id===p.id)).map(p=>[p.id,p]))},[selected,history,games]);
+ const live=games.filter(g=>g.state==='in'),shown=onlyLive?live:games;
+ const graded=games.map(g=>predictions.get(g.id)).filter((p):p is Prediction=>!!p&&p.correct!==null);
+ const wins=graded.filter(p=>p.correct).length,losses=graded.length-wins;
+ const insight=(p:Prediction)=>{const top=Object.entries(selected?.weights||{}).filter(([,v])=>Number(v)>0).sort((a,b)=>Number(b[1])-Number(a[1])).slice(0,3).map(([k,v])=>metrics.find(m=>m.key===k)?.label+' ('+Math.round(Number(v)*100)+'%)');return 'Model edge: '+Math.abs(p.edge).toFixed(3)+'. Based on '+p.homeGames+' prior games for '+p.home+' and '+p.awayGames+' for '+p.away+'. Most influential selected statistics: '+top.join(', ')+'.'};
  return <section className="panel" style={{marginBottom:20}}>
-  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
-   <div><div className="eyebrow">🏀 SPATS GAME CENTER</div><h2>Division I Scoreboard</h2><p className="note">Today’s games · automatically refreshes every 60 seconds · ESPN public scoreboard</p></div>
-   <div style={{display:'flex',gap:8,alignItems:'center'}}><button type="button" className={!onlyLive?'primary':'secondary'} onClick={()=>setOnlyLive(false)}>All games ({games.length})</button><button type="button" className={onlyLive?'primary':'secondary'} onClick={()=>setOnlyLive(true)}>🔴 Live ({live.length})</button></div>
-  </div>
-  {error&&<p className="notice" role="alert">Live feed unavailable: {error}. Historical model tools remain available.</p>}
-  {busy&&<p>Loading today's games…</p>}
-  {!busy&&!error&&!shown.length&&<p className="note">{onlyLive?'No games in progress right now.':'No Division I games scheduled today.'}</p>}
-  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,270px),1fr))',gap:12,marginTop:12}}>
-   {shown.slice(0,120).map(g=><div key={g.id} style={{border:'1px solid var(--line, #384457)',borderRadius:12,padding:14,background:'var(--surface,transparent)'}}>
-    <div style={{fontSize:12,opacity:.7,marginBottom:10}}>{g.state==='in'?'🔴 ':''}{g.status}</div>
-    {([{team:g.away,score:g.awayScore,logo:g.awayLogo},{team:g.home,score:g.homeScore,logo:g.homeLogo}]).map((t,i)=><div key={i} style={{display:'flex',alignItems:'center',gap:9,marginBottom:8}}>
-     {t.logo?<img src={t.logo} alt="" width={25} height={25} style={{objectFit:'contain'}}/>:<span>🏀</span>}<span style={{flex:1,fontWeight:600,fontSize:13}}>{t.team}</span><strong>{t.score??'–'}</strong>
-    </div>)}
-   </div>)}
-  </div>
-  {updated&&<p className="note">Feed last checked: {new Date(updated).toLocaleTimeString()} · Data may be delayed and is not an official live betting feed.</p>}
- </section>
+ <div className="eyebrow">🏀 SPATS GAME CENTER</div><h2>College Basketball · Model Matchups</h2>
+ <div style={{display:'flex',flexWrap:'wrap',alignItems:'end',gap:12,marginBottom:14}}>
+  <label style={{flex:'1 1 220px'}}>Your CBB model<select value={chosen} onChange={e=>setChosen(e.target.value)}><option value="">Choose a college basketball model</option>{models.map(m=><option key={m.name} value={m.name}>{m.name}</option>)}</select></label>
+  <button className="secondary" type="button" onClick={()=>setDate(shift(date,-1))}>← Previous day</button><label>Date<input type="date" value={date} onChange={e=>setDate(e.target.value)}/></label><button className="secondary" type="button" onClick={()=>setDate(shift(date,1))}>Next day →</button>
+  <button className="secondary" type="button" onClick={()=>setDate(day(new Date()))}>Today</button>
+ </div>
+ {!models.length&&<p className="notice">No college basketball models yet. Scroll down to build one, or <Link href="/college-basketball/model-advisor">use the Model Advisor</Link> to create one. Models from other sports will not appear here.</p>}
+ {selected&&<div style={{display:'flex',flexWrap:'wrap',gap:18,marginBottom:14,padding:12,borderRadius:10,background:'var(--surface,transparent)',border:'1px solid var(--line,#384457)'}}><strong>🏆 {wins} correct</strong><strong>❌ {losses} incorrect</strong><span>{graded.length} graded picks · {predictions.size} games rated</span></div>}
+ <div style={{display:'flex',justifyContent:'space-between',gap:8,flexWrap:'wrap',marginBottom:10}}><p className="note">Auto-refreshes every 60 seconds · ESPN Division I scoreboard · predictions require 3 prior games per team</p><div><button className={!onlyLive?'primary':'secondary'} onClick={()=>setOnlyLive(false)}>All ({games.length})</button> <button className={onlyLive?'primary':'secondary'} onClick={()=>setOnlyLive(true)}>🔴 Live ({live.length})</button></div></div>
+ {error&&<p className="notice" role="alert">{error}</p>}{busy&&<p>Loading matchups and prior results…</p>}
+ {!busy&&!shown.length&&<p className="note">{onlyLive?'No games currently in progress.':'No Division I games listed for this date.'}</p>}
+ <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,275px),1fr))',gap:12}}>
+ {shown.map(g=>{const p=predictions.get(g.id),grade=p?.correct;return <button type="button" key={g.id} onClick={()=>setModal(g)} style={{textAlign:'left',cursor:'pointer',border:'2px solid '+(grade===true?'#259d65':grade===false?'#c84a52':'var(--line,#384457)'),borderRadius:12,padding:14,background:grade===true?'rgba(37,157,101,.12)':grade===false?'rgba(200,74,82,.12)':'var(--surface,transparent)',color:'inherit'}}>
+ <div style={{fontSize:12,opacity:.8,marginBottom:10}}>{g.state==='in'?'🔴 ':''}{g.status}</div>
+ {([{team:g.away,score:g.awayScore,logo:g.awayLogo},{team:g.home,score:g.homeScore,logo:g.homeLogo}]).map((t,i)=><div key={i} style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>{t.logo?<img src={t.logo} alt="" width={25} height={25}/>:<span>🏀</span>}<span style={{flex:1,fontWeight:600,fontSize:13}}>{t.team}</span><strong>{t.score??'–'}</strong></div>)}
+ {selected&&<div style={{borderTop:'1px solid var(--line,#384457)',paddingTop:9,marginTop:9,fontSize:13}}><strong>Pick: {p?.pick||'Not rated yet'}</strong><div style={{opacity:.75,marginTop:4}}>Confidence: {p?(Math.abs(p.edge)>=.65?'High':Math.abs(p.edge)>=.3?'Medium':'Low')+' (edge '+Math.abs(p.edge).toFixed(3)+')':'Insufficient prior games'}</div></div>}
+ </button>})}
+ </div>
+ {updated&&<p className="note">Last checked: {new Date(updated).toLocaleTimeString()} · Confidence is an uncalibrated model strength rating, not a win probability. Historical predictions are recomputed using earlier results; they are not archived pregame picks.</p>}
+ {modal&&<div role="presentation" onClick={()=>setModal(null)} style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,.72)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}><div role="dialog" aria-modal="true" aria-label="Game prediction" onClick={e=>e.stopPropagation()} style={{background:'var(--background,#152034)',color:'inherit',border:'1px solid var(--line,#546)',borderRadius:16,padding:24,width:'min(100%,500px)',maxHeight:'90vh',overflowY:'auto'}}><button type="button" className="secondary" onClick={()=>setModal(null)} style={{float:'right'}}>✕ Close</button><h2>🏀 Matchup breakdown</h2><h3>{modal.away} at {modal.home}</h3><p>{modal.status}</p>{predictions.get(modal.id)?<><h3>Model pick: {predictions.get(modal.id)!.pick}</h3><p>Confidence: {Math.abs(predictions.get(modal.id)!.edge)>=.65?'High':Math.abs(predictions.get(modal.id)!.edge)>=.3?'Medium':'Low'}</p><p>{insight(predictions.get(modal.id)!)}</p></>:<p>{selected?'Not enough prior games for a reliable model pick.':'Select a saved college basketball model above to view its prediction.'}</p>}</div></div>}
+ </section>;
 }
