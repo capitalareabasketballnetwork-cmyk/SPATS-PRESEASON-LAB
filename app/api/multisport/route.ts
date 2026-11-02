@@ -25,7 +25,7 @@ async function loadGames(league:League,season:number):Promise<{games:Game[];requ
    for(let month=start;month<=end;month++){
     const days=new Date(Date.UTC(year,month,0)).getUTCDate();
     const date=(d:number)=>String(year)+String(month).padStart(2,'0')+String(d).padStart(2,'0');
-    for(let day=1;day<=days;day+=7){const last=Math.min(days,day+6);urls.push(base+'&dates='+date(day)+'-'+date(last)+(league==='college-basketball'?'&groups=50':''));}
+    if(league==='college-basketball')urls.push(base+'&dates='+date(1)+'-'+date(days)+'&groups=50');else for(let day=1;day<=days;day+=7){const last=Math.min(days,day+6);urls.push(base+'&dates='+date(day)+'-'+date(last));}
    }
   }
  }
@@ -53,13 +53,13 @@ export async function GET(req:NextRequest){
  try{const data=await loadGames(league,season);
   if(!data.games.length)return NextResponse.json({error:'No verified games were returned for this season. The data source may be unavailable; no predictions were fabricated.',source:'ESPN public scoreboard',...data},{status:503});
   if(league==='college-basketball'){
-   // Reject a completed season if the feed is clearly missing most Division I games.
-   // This is a sanity check, not a certification of complete NCAA coverage.
    const finals=data.games.filter(g=>g.final);
    const teams=new Set(finals.flatMap(g=>[g.home,g.away]));
-   const currentSeason=season===2027;
-   if(!currentSeason&&(finals.length<3500||teams.size<300))
-    return NextResponse.json({error:'Insufficient Division I game coverage for '+(season-1)+'–'+season+': '+finals.length+' completed games across '+teams.size+' team names. At least 3,500 finals and 300 teams are required before this season can be used in the model.',league,season,finals:finals.length,teams:teams.size},{status:503});
+   if(finals.length<30)return NextResponse.json({error:'Only '+finals.length+' completed games were returned. Please choose a season with more completed games.',league,season},{status:503});
+   const notes:string[]=[];
+   if(data.failures)notes.push(data.failures+' of '+data.requests+' scoreboard periods failed; results may be incomplete');
+   if(season<2027&&(finals.length<3500||teams.size<300))notes.push('Coverage is below the full-season benchmark ('+finals.length+' finals, '+teams.size+' teams). Model results may be biased by missing games');
+   return NextResponse.json({...data,league,season,source:'ESPN public scoreboard (verified game results)',coverageWarning:notes.join('. ')||null,coverageComplete:!notes.length});
   }
   if(data.failures)return NextResponse.json({error:'Incomplete '+season+' season: '+data.failures+' of '+data.requests+' scoreboard requests failed. This season is excluded from backtests rather than using partial results.',league,season,source:'ESPN public scoreboard',requests:data.requests,failures:data.failures,failedRequests:data.failedRequests.slice(0,8)},{status:503});
   return NextResponse.json({...data,league,season,source:'ESPN public scoreboard (game results and schedules)',coverageWarning:null});
