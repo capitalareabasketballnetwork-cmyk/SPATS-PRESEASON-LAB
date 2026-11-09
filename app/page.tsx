@@ -1,5 +1,5 @@
-import Link from 'next/link';
 'use client';
+import Link from 'next/link';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {db} from '../lib/supabase';
 import {fetchAllTeams,fetchHistoricalRosters,rank,type Team,type Weights,type HistoricalRoster} from '../lib/data';
