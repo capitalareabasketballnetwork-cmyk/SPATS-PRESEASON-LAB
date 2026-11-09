@@ -7,6 +7,34 @@ type Row=Record<string,unknown>;
 const id=(v:unknown)=>String(v??'');
 const num=(v:unknown)=>typeof v==='number'?v:Number(v??0);
 const clean=(v:unknown)=>Number.isFinite(num(v))?num(v):0;
+
+type EspnTeam={id:string;displayName:string;name:string;location:string;shortDisplayName:string;logos?:{href?:string}[]};
+const norm=(v:string)=>v.toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/&/g,'and').replace(/[^a-z0-9]+/g,' ').trim().replace(/\s+/g,' ');
+const expand=(v:string)=>norm(v).replace(/^st /,'saint ').replace(/^unc /,'north carolina ').replace(/^uc /,'california ').replace(/^uconn /,'connecticut ').replace(/^umass /,'massachusetts ').replace(/^miami oh /,'miami ohio ').replace(/^miami fl /,'miami florida ');
+async function officialTeamLogos():Promise<Map<string,string>>{
+ const logos=new Map<string,string>();
+ try{
+  const response=await fetch('https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams?group=50&limit=1000',{next:{revalidate:86400}});
+  if(!response.ok) return logos;
+  const payload=await response.json();
+  const entries=(payload?.sports?.[0]?.leagues?.[0]?.teams||[]) as Array<{team?:EspnTeam}>;
+  for(const entry of entries){
+   const t=entry.team;
+   if(!t)continue;
+   const url=t.logos?.find(l=>typeof l.href==='string'&&l.href.startsWith('https://'))?.href;
+   if(!url)continue;
+   for(const value of [t.displayName,t.shortDisplayName]){
+    if(!value)continue;
+    const key=expand(value);
+    // Ambiguous normalized names must never map to a random team's logo.
+    if(logos.has(key)&&logos.get(key)!==url)logos.set(key,'');
+    else if(!logos.has(key))logos.set(key,url);
+   }
+  }
+ }catch(error){console.warn('SPATS team logo directory unavailable:',error instanceof Error?error.message:'Unknown response');}
+ return logos;
+}
+
 function market(){
  const url=process.env.SPATS_MARKET_SUPABASE_URL||process.env.NEXT_PUBLIC_SUPABASE_URL;
  const key=process.env.SPATS_MARKET_SERVICE_ROLE_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -31,7 +59,7 @@ export async function GET(req:NextRequest){
    if(!/^[a-zA-Z0-9_-]{1,100}$/.test(identifier))return fail('Invalid stock identifier.',400);
    const asset=req.nextUrl.searchParams.get('asset');
    if(asset==='team'){
-    const {data:hist,error}=await db.from('elo_history').select('game_id,rating_before,rating_after,rating_change').eq('team_id',identifier).limit(1000);
+    const {data:hist,error}=await db.from('elo_history').select('game_id,rating_after').eq('team_id',identifier).limit(1000);
     if(error)throw error;
     const ids=[...new Set((hist||[]).map((v:Row)=>id(v.game_id)))];
     const dates:Record<string,string>={};
@@ -40,8 +68,8 @@ export async function GET(req:NextRequest){
      if(ge)throw ge;
      for(const g of games||[])dates[id(g.id)]=id(g.game_date);
     }
-    const data=(hist||[]).map((r:Row)=>({gameId:id(r.game_id),date:dates[id(r.game_id)]||'',value:Math.round((100*Math.pow(2,(clean(r.rating_after)-1500)/300))*100)/100,elo:clean(r.rating_after),change:clean(r.rating_change)})).filter(x=>x.date).sort((a,b)=>a.date.localeCompare(b.date)||a.gameId.localeCompare(b.gameId));
-    return NextResponse.json({data,source:'SPATS Elo V3 team stock history'}, {headers:{'Cache-Control':'no-store'}});
+    const data=(hist||[]).map((r:Row)=>({gameId:id(r.game_id),date:dates[id(r.game_id)]||'',value:Math.round((100*Math.pow(2,(clean(r.rating_after)-1500)/300))*100)/100})).filter(x=>x.date).sort((a,b)=>a.date.localeCompare(b.date)||a.gameId.localeCompare(b.gameId));
+    return NextResponse.json({data,source:'SPATS team stock price history'}, {headers:{'Cache-Control':'no-store'}});
    }
    if(asset==='player'){
     const {data,error}=await db.from('player_price_history').select('game_id,event_time,price_after,change_pct,event_type').eq('player_id',identifier).order('event_time',{ascending:true}).limit(1000);
@@ -53,14 +81,15 @@ export async function GET(req:NextRequest){
   if(kind!=='overview')return fail('Unknown request.',400);
   const [teamsResult,ratingsResult,playerSeasonsResult,playerRatingsResult]=await Promise.all([
    db.from('teams').select('id,name,conference').eq('is_active',true).limit(500),
-   db.from('current_ratings').select('team_id,elo_rating,stock_price,games_processed,updated_at').limit(500),
+   db.from('current_ratings').select('team_id,stock_price,games_processed,updated_at').limit(500),
    db.from('player_seasons').select('player_id,team_id,season,points_per_game,rebounds_per_game,assists_per_game').eq('season',2027).limit(1500),
    db.from('player_ratings').select('player_id,season,stock_price,opening_price,games_processed,updated_at').eq('season',2027).limit(1500)
   ]);
   if(teamsResult.error)throw teamsResult.error;
   if(ratingsResult.error)throw ratingsResult.error;
+  const logoByName=await officialTeamLogos();
   const ratingById=new Map((ratingsResult.data||[]).map((r:Row)=>[id(r.team_id),r]));
-  const teams=(teamsResult.data||[]).map((r:Row)=>{const rating=ratingById.get(id(r.id));return {id:id(r.id),name:id(r.name),conference:id(r.conference),price:rating?clean(rating.stock_price):null,elo:rating?clean(rating.elo_rating):null,games:rating?clean(rating.games_processed):0,updatedAt:rating?id(rating.updated_at):null};}).sort((a,b)=>(b.price??-1)-(a.price??-1));
+  const teams=(teamsResult.data||[]).map((r:Row)=>{const rating=ratingById.get(id(r.id));return {id:id(r.id),name:id(r.name),conference:id(r.conference),logoUrl:logoByName.get(expand(id(r.name)))||null,price:rating?clean(rating.stock_price):null,games:rating?clean(rating.games_processed):0,updatedAt:rating?id(rating.updated_at):null};}).sort((a,b)=>(b.price??-1)-(a.price??-1));
   let players:Array<Record<string,unknown>>=[];
   let playerWarning='';
   if(playerSeasonsResult.error){playerWarning=playerSeasonsResult.error.message;}
