@@ -13,7 +13,14 @@ function market(){
  if(!url||!key)return null;
  return createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}}).schema('spats_market');
 }
-const fail=(message:string,status=503)=>NextResponse.json({error:message},{status,headers:{'Cache-Control':'no-store'}});
+const fail=(message:string,status=503,code?:string)=>NextResponse.json({error:message,...(code?{code}:{})},{status,headers:{'Cache-Control':'no-store'}});
+function dbError(e:unknown){
+ if(e && typeof e==='object'){
+  const o=e as Record<string,unknown>;
+  return {code:String(o.code||'UNKNOWN'),message:String(o.message||'Unknown database error'),details:String(o.details||'')};
+ }
+ return {code:'UNKNOWN',message:e instanceof Error?e.message:String(e),details:''};
+}
 export async function GET(req:NextRequest){
  const db=market();
  if(!db)return fail('Market connection is not configured. Add server-side Supabase credentials.');
@@ -71,8 +78,18 @@ export async function GET(req:NextRequest){
   }
   return NextResponse.json({teams,players,playerWarning,asOf:new Date().toISOString(),playerPricesPublished:players.some(p=>typeof p.price==='number')},{headers:{'Cache-Control':'no-store'}});
  }catch(e){
-  const message=e instanceof Error?e.message:String(e);
-  console.error('SPATS market snapshot error:',message);
-  return fail(message.includes('schema')?'Market schema is not exposed to the Supabase REST API. Expose spats_market or provide a public-schema read RPC.':'Unable to read SPATS market tables. Check the project connection and schema access.');
+  const err=dbError(e);
+  console.error('SPATS market snapshot error:',JSON.stringify(err));
+  const detail=err.message.toLowerCase();
+  const schemaError=err.code==='PGRST106'||detail.includes('schema')||detail.includes('exposed');
+  const missingTable=err.code==='PGRST205'||err.code==='42P01'||detail.includes('does not exist')||detail.includes('could not find the table');
+  const permission=err.code==='42501'||detail.includes('permission denied');
+  return fail(schemaError
+   ?'Supabase cannot access the spats_market schema through its REST API. Add spats_market to Exposed schemas in Supabase API settings.'
+   :missingTable
+   ?'The connected Supabase project does not expose the expected SPATS market tables. Confirm the website points to the stock-market Supabase project.'
+   :permission
+   ?'The SPATS market database role lacks permission to read the spats_market tables.'
+   :'Unable to read SPATS market tables. Check Supabase project connection and schema access.',503,err.code);
  }
 }
