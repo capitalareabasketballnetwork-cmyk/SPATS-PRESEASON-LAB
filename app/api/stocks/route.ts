@@ -57,19 +57,28 @@ export async function GET(req:NextRequest){
  try{
   if(kind==='portrait'){
    const name=req.nextUrl.searchParams.get('name')||'';
-   if(!/^\\d{1,15}$/.test(identifier)||name.length<3)return fail('Invalid player.',400);
-   try{
-    const response=await fetch(`https://site.web.api.espn.com/apis/common/v3/sports/basketball/mens-college-basketball/athletes/${identifier}/overview`,{next:{revalidate:86400}});
-    if(!response.ok)return NextResponse.json({photoUrl:null},{headers:{'Cache-Control':'public, max-age=3600'}});
-    const body=await response.json();
-    const athlete=body?.athlete||body?.player||body?.profile?.athlete;
-    const realName=id(athlete?.displayName||athlete?.fullName||body?.displayName);
-    const photoUrl=id(athlete?.headshot?.href||body?.athlete?.headshot?.href);
-    // Never display a portrait unless ESPN independently confirms the athlete's identity.
-    const matches=expand(realName)===expand(name);
-    const verifiedUrl=matches&&(photoUrl.startsWith('https://a.espncdn.com/')||photoUrl.startsWith('https://espncdn.com/'))?photoUrl:matches?`https://a.espncdn.com/i/headshots/mens-college-basketball/players/full/${identifier}.png`:null;
-    return NextResponse.json({photoUrl:verifiedUrl},{headers:{'Cache-Control':'public, max-age=3600'}});
-   }catch{return NextResponse.json({photoUrl:null},{headers:{'Cache-Control':'public, max-age=900'}})}
+   const teamLogo=req.nextUrl.searchParams.get('teamLogo')||'';
+   if(name.length<3||name.length>130)return fail('Invalid player.',400);
+   // Reuse the same ESPN roster/headshot feed used by the CBB Rankings page.
+   // An ESPN school ID comes only from a previously verified ESPN team-logo URL.
+   const logoMatch=teamLogo.match(/^https:\/\/(?:a\.)?espncdn\.com\/i\/teamlogos\/ncaa\/(?:500|500-dark|500-light|200|100)\/(\d+)\.png(?:\?.*)?$/);
+   let photoUrl:string|null=null;
+   if(logoMatch){
+    try{
+     const response=await fetch(`https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams/${logoMatch[1]}/roster`,{next:{revalidate:86400}});
+     if(response.ok){
+      const roster=await response.json();
+      const groups=Array.isArray(roster?.athletes)?roster.athletes:[];
+      const athletes=groups.flatMap((g:Row)=>Array.isArray(g.items)?g.items:[g]);
+      const matched=athletes.filter((athlete:Row)=>expand(id(athlete.displayName||athlete.fullName))===expand(name));
+      if(matched.length===1){
+       const href=id(matched[0]?.headshot?.href);
+       if(/^https:\/\/[^/]*espncdn\.com\//.test(href))photoUrl=href;
+      }
+     }
+    }catch{}
+   }
+   return NextResponse.json({photoUrl},{headers:{'Cache-Control':'public, max-age=3600'}});
   }
   if(kind==='history'){
    if(!/^[a-zA-Z0-9_-]{1,100}$/.test(identifier))return fail('Invalid stock identifier.',400);
