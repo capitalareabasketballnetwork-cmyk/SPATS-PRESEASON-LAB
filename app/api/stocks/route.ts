@@ -141,7 +141,7 @@ export async function GET(req:NextRequest){
     const gameIds=[...new Set(records.map(r=>id(r.game_id)).filter(v=>v&&v!=='null'))];
     const gameMap=new Map<string,Row>();
     for(let i=0;i<gameIds.length;i+=150){
-     const {data:games,error:ge}=await db.from('games').select('id,game_date,home_team_id,away_team_id,home_score,away_score').in('id',gameIds.slice(i,i+150));
+     const {data:games,error:ge}=await db.from('games').select('id,game_date,season,home_team_id,away_team_id,home_score,away_score').in('id',gameIds.slice(i,i+150));
      if(ge)throw ge;
      for(const g of games||[])gameMap.set(id(g.id),g as Row);
     }
@@ -165,7 +165,7 @@ export async function GET(req:NextRequest){
      const ownScore=isHome===null?null:isHome?g?.home_score:g?.away_score;
      const otherScore=isHome===null?null:isHome?g?.away_score:g?.home_score;
      const result=ownScore==null||otherScore==null?null:clean(ownScore)>clean(otherScore)?'W':clean(ownScore)<clean(otherScore)?'L':null;
-     return {gameId,date:id(g?.game_date||r.event_time),value:clean(r.price_after),priceBefore:r.price_before==null?null:clean(r.price_before),priceChange:r.price_before==null?null:Math.round((clean(r.price_after)-clean(r.price_before))*100)/100,change:clean(r.change_pct),event:id(r.event_type),opponent:other?names.get(other)||null:null,score:ownScore==null||otherScore==null?null:`${clean(ownScore)}–${clean(otherScore)}`,result};
+     return {gameId,date:id(g?.game_date||r.event_time),season:g?.season==null?null:clean(g.season),value:clean(r.price_after),priceBefore:r.price_before==null?null:clean(r.price_before),priceChange:r.price_before==null?null:Math.round((clean(r.price_after)-clean(r.price_before))*100)/100,change:clean(r.change_pct),event:id(r.event_type),opponent:other?names.get(other)||null:null,score:ownScore==null||otherScore==null?null:`${clean(ownScore)}–${clean(otherScore)}`,result};
     }).sort((a,b)=>a.date.localeCompare(b.date)||a.gameId.localeCompare(b.gameId));
     return NextResponse.json({data:rows,publishedPrice,publishedUpdatedAt,latestGameDate:rows[rows.length-1]?.date||null,source:'SPATS player stock history'},{headers:{'Cache-Control':'no-store'}});
    }
