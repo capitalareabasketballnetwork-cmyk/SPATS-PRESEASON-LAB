@@ -48,7 +48,7 @@ function PriceChart({history}:{history:History[]}){
   const unique=new Map<string,History>();
   for(const row of history){
    const day=row.date?.slice(0,10);
-   if(!day||!/^\\d{4}-\\d{2}-\\d{2}$/.test(day)||!Number.isFinite(row.value))continue;
+   if(!day||!/^\d{4}-\d{2}-\d{2}$/.test(day)||!Number.isFinite(row.value))continue;
    const gameId=row.gameId||day;
    if(!unique.has(gameId))unique.set(gameId,{...row,date:day});
   }
