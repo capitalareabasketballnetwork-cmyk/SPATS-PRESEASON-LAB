@@ -30,3 +30,7 @@
 .stock-fullscreen-dialog .stock-game-inspector{margin-top:auto}
 .stock-fullscreen-dialog .stock-chart .stock-expand-button{display:none}
 @media(max-width:600px){.stock-fullscreen-backdrop{padding:0}.stock-fullscreen-dialog{width:100%;height:100dvh;max-height:none;border-radius:0;padding:16px}.stock-fullscreen-dialog .stock-chart{padding:13px}.stock-fullscreen-dialog .stock-chart>svg{max-height:calc(100dvh - 380px);min-height:200px}.stock-fullscreen-dialog .stock-chart-top{align-items:flex-start}}
+
+/* Make authoritative market price distinct from historical chart datapoints. */
+.stock-history-caption{display:block;color:#a9bdd6;font-size:12px;line-height:1.5;margin:5px 0 0}
+.stock-price-history-notice{margin:15px 0 0;border:1px solid #526178;background:#223148;color:#d7e6fa;border-radius:9px;padding:11px 13px;font-size:12px;line-height:1.55}
