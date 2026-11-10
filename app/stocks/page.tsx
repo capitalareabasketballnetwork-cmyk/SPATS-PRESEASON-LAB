@@ -133,13 +133,13 @@ function PriceChart({history,publishedPrice,historyStatus}:{history:History[];pu
    <text x="60" y="258" fill="#9aaec6" fontSize="11">{games[0].date.slice(0,10)}</text>
    <text x="638" y="258" fill="#9aaec6" textAnchor="end" fontSize="11">{games[games.length-1].date.slice(0,10)}</text>
    </svg>
-   <div className="stock-game-inspector" aria-live="polite">
-    {selected?<><div className="stock-game-header"><span>{selected.date.slice(0,10)}</span><b className={diff!==null&&diff>=0?'stock-up':'stock-down'}>{diff===null?'Price change unavailable':moneyDelta(diff)}</b></div>
+   {selected&&<div className="stock-game-inspector" aria-live="polite">
+    <><div className="stock-game-header"><span>{selected.date.slice(0,10)}</span><b className={diff!==null&&diff>=0?'stock-up':'stock-down'}>{diff===null?'Price change unavailable':moneyDelta(diff)}</b></div>
      <div className="stock-game-line"><span>{selected.opponent?'vs '+selected.opponent:selected.event||'Game details unavailable'}</span><span>{selected.score||'Score unavailable'}</span>{selected.result&&<b className={selected.result==='W'?'stock-up':'stock-down'}>{selected.result}</b>}</div>
      <div className="stock-game-prices"><span>Previous recorded close {cash(before)}</span><span>After {cash(selected.value)}</span></div>
      {seasonChange&&<div className="stock-season-adjustment"><strong>New-season valuation adjustment</strong><p>SPATS adjusts team stock prices between seasons to account for roster turnover, including departing players and new arrivals. That reset can lower a team's price even after a win. The change above spans the offseason adjustment and this game, rather than reflecting the game result alone.</p>{offseasonReset!==null&&gameOnlyChange!==null&&<div className="stock-adjustment-details"><span>Offseason adjustment: <b className={offseasonReset>=0?'stock-up':'stock-down'}>{moneyDelta(offseasonReset)}</b></span><span>This game: <b className={gameOnlyChange>=0?'stock-up':'stock-down'}>{moneyDelta(gameOnlyChange)}</b></span></div>}</div>}
-    </>:<span className="stock-muted">Touch or drag across the price chart to inspect an individual game and its price movement. The chart is green when the stock gained value over this selected period and red when it lost value. Each dot represents one game.</span>}
-   </div></>:<div className="stock-empty-chart">{current.length?<>No recorded stock price changes for this {range==='1W'?'week':range==='1M'?'month':range==='CURRENT'?'current season':range==='LAST'?'previous season':'period'}.<br/>Most recent recorded game: {current[current.length-1]?.date.slice(0,10)}.<br/>Select ALL to see earlier prices.</>:'No verified price-history events are published for this stock yet.'}</div>}
+    </>
+   </div>}</>:<div className="stock-empty-chart">{current.length?<>No recorded stock price changes for this {range==='1W'?'week':range==='1M'?'month':range==='CURRENT'?'current season':range==='LAST'?'previous season':'period'}.<br/>Most recent recorded game: {current[current.length-1]?.date.slice(0,10)}.<br/>Select ALL to see earlier prices.</>:'No verified price-history events are published for this stock yet.'}</div>}
  </div>;
  return <>
   {renderChart(false)}
