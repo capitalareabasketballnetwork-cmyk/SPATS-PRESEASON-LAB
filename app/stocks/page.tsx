@@ -5,7 +5,7 @@ import './stocks.css';
 type Team={id:string;name:string;conference:string;logoUrl:string|null;price:number|null;games:number;updatedAt:string|null};
 type Player={id:string;name:string;position:string;teamId:string;price:number|null;openingPrice:number|null;ppg:number|null;rpg:number|null;apg:number|null;games:number|null};
 type Stock=({asset:'team'}&Team)|({asset:'player'}&Player);
-type History={date:string;value:number;gameId:string;priceBefore?:number|null;priceChange?:number|null;opponent?:string|null;score?:string|null;result?:'W'|'L'|null;change?:number;event?:string};
+type History={date:string;value:number;gameId:string;season?:number;priceBefore?:number|null;priceChange?:number|null;opponent?:string|null;score?:string|null;result?:'W'|'L'|null;change?:number;event?:string};
 type Snapshot={teams:Team[];players:Player[];asOf:string;playerPricesPublished:boolean;playerWarning?:string;coverage?:{season:number;teamGames:number;latestTeamGameDate:string|null;playerGamesCovered:number;playerCoveragePartial?:boolean}};
 type Tab='overview'|'teams'|'players'|'screener';
 type Sort='price'|'name'|'change';
@@ -40,7 +40,7 @@ function Portrait({id,name,teamLogoUrl,size=42}:{id:string;name:string;teamLogoU
  return <span ref={ref} className="stock-portrait" style={{width:size,height:size}}>{url&&!failed?<img src={url} alt={name} loading="lazy" onError={()=>setFailed(true)}/>:<span aria-hidden="true">{name.split(' ').map(v=>v[0]).slice(0,2).join('')}</span>}</span>;
 }
 function PriceChart({history,publishedPrice}:{history:History[];publishedPrice:number|null}){
- const [range,setRange]=useState<'1W'|'1M'|'3M'|'1Y'|'ALL'>('ALL');
+ const [range,setRange]=useState<'1W'|'1M'|'CURRENT'|'LAST'|'ALL'>('CURRENT');
  const [active,setActive]=useState<number|null>(null);
  const [fullScreen,setFullScreen]=useState(false);
  const [dragging,setDragging]=useState(false);
@@ -54,18 +54,25 @@ function PriceChart({history,publishedPrice}:{history:History[];publishedPrice:n
   }
   return [...unique.values()].sort((a,b)=>a.date.localeCompare(b.date)||a.gameId.localeCompare(b.gameId));
  },[history]);
+ const currentSeason=useMemo(()=>{
+  const today=new Date();
+  return today.getFullYear()+(today.getMonth()>=6?1:0);
+ },[]);
  const filtered=useMemo(()=>{
   if(range==='ALL')return current;
-  const days={'1W':7,'1M':30,'3M':90,'1Y':365}[range];
-  // Use an exact calendar-day cutoff, not a time-of-day comparison to midnight.
-  const now=new Date();
-  const beginning=new Date(Date.UTC(now.getFullYear(),now.getMonth(),now.getDate()-days+1));
-  const end=new Date(Date.UTC(now.getFullYear(),now.getMonth(),now.getDate()+1));
+  if(range==='CURRENT'||range==='LAST'){
+   const target=range==='CURRENT'?currentSeason:currentSeason-1;
+   return current.filter(h=>h.season===target);
+  }
+  const days=range==='1W'?7:30;
+  const today=new Date();
+  const start=new Date(today.getFullYear(),today.getMonth(),today.getDate()-days+1);
+  const finish=new Date(today.getFullYear(),today.getMonth(),today.getDate()+1);
   return current.filter(h=>{
-   const pointDate=new Date(h.date+'T00:00:00Z');
-   return pointDate>=beginning&&pointDate<end;
+   const date=new Date(h.date+'T00:00:00');
+   return date>=start&&date<finish;
   });
- },[current,range]);
+ },[current,range,currentSeason]);
  useEffect(()=>{setActive(null)},[range,history]);
  useEffect(()=>{
   if(!fullScreen)return;
@@ -87,9 +94,15 @@ function PriceChart({history,publishedPrice}:{history:History[];publishedPrice:n
  const x=(i:number)=>games.length===1?350:65+i*565/(games.length-1);
  const selected=active!==null?games[active]:null;
  const previous=active!==null&&active>0?games[active-1]:null;
- const firstBefore=selected&&active===0?selected.priceBefore:null;
- const before=previous?.value??firstBefore;
- const diff=selected&&before!=null?selected.value-before:null;
+ // Compare to the preceding recorded game even when a season filter hides it.
+ const fullIndex=selected?current.findIndex(h=>h.gameId===selected.gameId):-1;
+ const precedingFull=fullIndex>0?current[fullIndex-1]:null;
+ const preceding=previous??precedingFull;
+ const seasonChange=!!selected&&!!preceding&&selected.season!=null&&preceding.season!=null&&selected.season!==preceding.season;
+ const before=preceding?.value??selected?.priceBefore??null;
+ const diff=selected&&before!==null?selected.value-before:null;
+ const gameOnlyChange=selected&&selected.priceBefore!=null?selected.value-selected.priceBefore:null;
+ const offseasonReset=seasonChange&&selected?.priceBefore!=null&&preceding?selected.priceBefore-preceding.value:null;
  const chosenX=active!==null?x(active):0,chosenY=selected?y(selected.value):0;
  const closeFullscreen=()=>{setFullScreen(false);setDragging(false)};
  const onMove=(event:React.PointerEvent<SVGSVGElement>)=>{
@@ -103,7 +116,7 @@ function PriceChart({history,publishedPrice}:{history:History[];publishedPrice:n
  const moneyDelta=(v:number)=> (v>=0?'+':'−')+cash(Math.abs(v));
  const priceLabel=(v:number)=>'$'+v.toFixed(v>=1000?0:2);
  const renderChart=(expanded:boolean)=><div className="stock-chart" key={expanded?'full-chart-'+range:'modal-chart-'+range}>
-  <div className="stock-chart-top"><div><span className="stock-overline">CURRENT STOCK PRICE</span><h3>{cash(publishedPrice)} </h3><span className="stock-history-caption">{games.length&&first?<><span className={overallDelta>=0?'stock-up':'stock-down'}>{percent((last/first-1)*100)}</span> historical price movement for selected period</>:'Historical price movement unavailable'}</span></div><div className="stock-time">{(['1W','1M','3M','1Y','ALL'] as const).map(r=><button key={r} className={r===range?'selected':''} onClick={()=>{setRange(r);setActive(null)}}>{r}</button>)}{!expanded&&<button className="stock-expand-button" onClick={()=>setFullScreen(true)} aria-label="Open full-screen stock price chart">⛶ Full screen</button>}</div></div>
+  <div className="stock-chart-top"><div><span className="stock-overline">CURRENT STOCK PRICE</span><h3>{cash(publishedPrice)} </h3><span className="stock-history-caption">{games.length&&first?<><span className={overallDelta>=0?'stock-up':'stock-down'}>{percent((last/first-1)*100)}</span> historical price movement for selected period</>:'Historical price movement unavailable'}</span></div><div className="stock-time">{([['1W','1W'],['1M','1M'],['CURRENT','Current Season'],['LAST','Last Season'],['ALL','All']] as const).map(([key,label])=><button key={key} className={key===range?'selected':''} onClick={()=>{setRange(key);setActive(null)}}>{label}</button>)}{!expanded&&<button className="stock-expand-button" onClick={()=>setFullScreen(true)} aria-label="Open full-screen stock price chart">⛶ Full screen</button>}</div></div>
   {differsFromPublished&&<div className="stock-price-history-notice">The last recorded game price is {cash(last)}, while the current published market price is {cash(publishedPrice)}. Historical game prices have not yet been reconciled with the latest market calculation. The current price above always comes directly from Supabase.</div>}
   {games.length?<><svg key={range+(expanded?'-fullscreen':'-modal')} className="stock-interactive-chart" viewBox="0 0 650 270" role="img" aria-label="Touch or drag to inspect each game and its actual stock price movement" onPointerMove={onMove} onPointerDown={e=>{setDragging(true);e.currentTarget.setPointerCapture(e.pointerId);onMove(e)}} onPointerUp={e=>{setDragging(false);if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId)}} onPointerCancel={()=>setDragging(false)} onPointerLeave={()=>{if(!dragging)setActive(null)}}>
    {[0,1,2,3,4].map(i=>{const value=top-(top-bottom)*i/4;const lineY=y(value);return <g key={i}><line x1="60" x2="638" y1={lineY} y2={lineY} stroke="#415573" strokeDasharray="3 5" strokeWidth="1"/><text x="53" y={lineY+4} textAnchor="end" fill="#91a9c7" fontSize="11">{priceLabel(value)}</text></g>})}
@@ -121,9 +134,10 @@ function PriceChart({history,publishedPrice}:{history:History[];publishedPrice:n
    <div className="stock-game-inspector" aria-live="polite">
     {selected?<><div className="stock-game-header"><span>{selected.date.slice(0,10)}</span><b className={diff!==null&&diff>=0?'stock-up':'stock-down'}>{diff===null?'Price change unavailable':moneyDelta(diff)}</b></div>
      <div className="stock-game-line"><span>{selected.opponent?'vs '+selected.opponent:selected.event||'Game details unavailable'}</span><span>{selected.score||'Score unavailable'}</span>{selected.result&&<b className={selected.result==='W'?'stock-up':'stock-down'}>{selected.result}</b>}</div>
-     <div className="stock-game-prices"><span>Before {cash(before??null)}</span><span>After {cash(selected.value)}</span></div>
+     <div className="stock-game-prices"><span>Previous recorded close {cash(before)}</span><span>After {cash(selected.value)}</span></div>
+     {seasonChange&&<div className="stock-season-adjustment"><strong>New-season valuation adjustment</strong><p>SPATS adjusts team stock prices between seasons to account for roster turnover, including departing players and new arrivals. That reset can lower a team's price even after a win. The change above spans the offseason adjustment and this game, rather than reflecting the game result alone.</p>{offseasonReset!==null&&gameOnlyChange!==null&&<div className="stock-adjustment-details"><span>Offseason adjustment: <b className={offseasonReset>=0?'stock-up':'stock-down'}>{moneyDelta(offseasonReset)}</b></span><span>This game: <b className={gameOnlyChange>=0?'stock-up':'stock-down'}>{moneyDelta(gameOnlyChange)}</b></span></div>}</div>}
     </>:<span className="stock-muted">Touch or drag across the price chart to inspect an individual game and its price movement. The chart is green when the stock gained value over this selected period and red when it lost value. Each dot represents one game.</span>}
-   </div></>:<div className="stock-empty-chart">{current.length?<>No recorded stock price changes for this {range==='1W'?'week':range==='1M'?'month':range==='3M'?'three-month period':'year'}.<br/>Most recent recorded game: {current[current.length-1]?.date.slice(0,10)}.<br/>Select ALL to see earlier prices.</>:'No verified price-history events are published for this stock yet.'}</div>}
+   </div></>:<div className="stock-empty-chart">{current.length?<>No recorded stock price changes for this {range==='1W'?'week':range==='1M'?'month':range==='CURRENT'?'current season':range==='LAST'?'previous season':'period'}.<br/>Most recent recorded game: {current[current.length-1]?.date.slice(0,10)}.<br/>Select ALL to see earlier prices.</>:'No verified price-history events are published for this stock yet.'}</div>}
  </div>;
  return <>
   {renderChart(false)}
