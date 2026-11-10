@@ -42,9 +42,9 @@ function Portrait({id,name,size=42}:{id:string;name:string;size?:number}){
 function PriceChart({history}:{history:History[]}){
  const [range,setRange]=useState<'1W'|'1M'|'3M'|'1Y'|'ALL'>('ALL');
  const [active,setActive]=useState<number|null>(null);
+ const [fullScreen,setFullScreen]=useState(false);
  const [dragging,setDragging]=useState(false);
- const chartRef=useRef<SVGSVGElement>(null);
- const current=useMemo(()=>history.filter(h=>h.date&&Number.isFinite(h.value)).sort((a,b)=>a.date.localeCompare(b.date)||a.gameId.localeCompare(b.gameId)),[history]);
+ const current=useMemo(()=>history.filter(h=>h.date&&Number.isFinite(h.value)).slice().sort((a,b)=>a.date.localeCompare(b.date)||a.gameId.localeCompare(b.gameId)),[history]);
  const filtered=useMemo(()=>{
   if(range==='ALL')return current;
   const days={'1W':7,'1M':30,'3M':90,'1Y':365}[range];
@@ -52,48 +52,77 @@ function PriceChart({history}:{history:History[]}){
   return current.filter(h=>new Date(h.date).getTime()>=cutoff);
  },[current,range]);
  useEffect(()=>{setActive(null)},[range,history]);
- const first=filtered[0]?.priceBefore??filtered[0]?.value??0;
- const last=filtered[filtered.length-1]?.value??0;
- const positive=last>=first;
- const values=filtered.flatMap(v=>[v.value,...(v.priceBefore==null?[]:[v.priceBefore])]);
- const minimum=values.length?Math.min(...values):0,maximum=values.length?Math.max(...values):1;
- const padding=Math.max(.25,(maximum-minimum)*.18),bottom=minimum-padding,top=maximum+padding;
- const x=(i:number)=>filtered.length===1?330:30+600*i/Math.max(1,filtered.length-1);
- const y=(n:number)=>220-(n-bottom)/(top-bottom)*190;
- const points=filtered.map((v,i)=>x(i).toFixed(1)+','+y(v.value).toFixed(1)).join(' ');
- const selected=active!==null?filtered[active]:null;
- const previous=selected?.priceBefore??(active!==null&&active>0?filtered[active-1]?.value:null);
- const difference=selected?.priceChange??(previous===null||previous===undefined||!selected?null:selected.value-previous);
- const changeClass=difference===null?'':difference>=0?'stock-up':'stock-down';
- const chosenX=active===null?0:x(active),chosenY=active===null?0:y(filtered[active].value);
+ useEffect(()=>{
+  if(!fullScreen)return;
+  const onKey=(event:KeyboardEvent)=>{if(event.key==='Escape')setFullScreen(false)};
+  window.addEventListener('keydown',onKey);
+  return()=>window.removeEventListener('keydown',onKey);
+ },[fullScreen]);
+ // Each game's line segment is drawn from its own verified pregame price to its
+ // postgame price. Do not connect gaps introduced by season rebaselines.
+ const games=useMemo(()=>filtered.map((g,i)=>{
+  const fallback=i>0?filtered[i-1].value:g.value;
+  return {...g,before:g.priceBefore??fallback,after:g.value};
+ }),[filtered]);
+ const first=games[0]?.before??0,last=games[games.length-1]?.after??0;
+ const overallDelta=last-first;
+ const values=games.flatMap(g=>[g.before,g.after]);
+ const min=values.length?Math.min(...values):0,max=values.length?Math.max(...values):1;
+ const padding=Math.max(.5,(max-min)*.12),bottom=min-padding,top=max+padding;
+ const y=(n:number)=>222-(n-bottom)/(top-bottom)*186;
+ const gap=600/Math.max(1,games.length);
+ const xBefore=(i:number)=>30+i*gap+gap*.12;
+ const xAfter=(i:number)=>30+i*gap+gap*.88;
+ const xMiddle=(i:number)=>(xBefore(i)+xAfter(i))/2;
+ const selected=active!==null?games[active]:null;
+ const diff=selected?selected.after-selected.before:null;
+ const chosenX=active!==null?xAfter(active):0,chosenY=selected?y(selected.after):0;
+ const closeFullscreen=()=>{setFullScreen(false);setDragging(false)};
  const onMove=(event:React.PointerEvent<SVGSVGElement>)=>{
-  if(!filtered.length)return;
+  if(!games.length)return;
   const box=event.currentTarget.getBoundingClientRect();
   const px=(event.clientX-box.left)/box.width*650;
-  const next=filtered.length===1?0:Math.max(0,Math.min(filtered.length-1,Math.round((px-30)/600*(filtered.length-1))));
+  const next=Math.max(0,Math.min(games.length-1,Math.floor((px-30)/600*games.length)));
   setActive(next);
  };
- return <div className="stock-chart">
-  <div className="stock-chart-top"><div><span className="stock-overline">PRICE HISTORY</span><h3>{cash(last||null)} <small className={positive?'stock-up':'stock-down'}>{filtered.length>1&&first?percent((last/first-1)*100):'—'}</small></h3></div><div className="stock-time">{(['1W','1M','3M','1Y','ALL'] as const).map(r=><button key={r} className={r===range?'selected':''} onClick={()=>setRange(r)}>{r}</button>)}</div></div>
-  {filtered.length?
-   <>
-    <svg ref={chartRef} className="stock-interactive-chart" viewBox="0 0 650 255" role="img" aria-label="Touch or drag along the price chart to inspect individual games" onPointerMove={onMove} onPointerDown={e=>{setDragging(true);e.currentTarget.setPointerCapture(e.pointerId);onMove(e)}} onPointerUp={e=>{setDragging(false);if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId)}} onPointerCancel={()=>setDragging(false)} onPointerLeave={()=>{if(!dragging)setActive(null)}}>
-     <defs><linearGradient id="spatsPriceFade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={positive?'#27d69d':'#fb6b83'} stopOpacity=".28"/><stop offset="1" stopColor={positive?'#27d69d':'#fb6b83'} stopOpacity="0"/></linearGradient></defs>
-     {[0,1,2,3,4].map(i=><line key={i} x1="30" x2="630" y1={25+i*47} y2={25+i*47} stroke="#26344a" strokeDasharray="4 5"/> )}
-     {filtered.length>1?<><polygon points={`30,232 ${points} 630,232`} fill="url(#spatsPriceFade)"/><polyline points={points} fill="none" stroke={positive?'#27d69d':'#fb6b83'} strokeWidth="3" strokeLinejoin="round" strokeLinecap="round"/></>:<circle cx={330} cy={y(filtered[0].value)} r="5" fill="#27d69d"/>}
-     {active!==null&&<><line x1={chosenX} x2={chosenX} y1={20} y2={232} stroke="#b2c8e4" strokeDasharray="4 4"/><circle cx={chosenX} cy={chosenY} r="7" fill={difference!==null&&difference<0?'#fb6b83':'#27d69d'} stroke="#0f1a2c" strokeWidth="3"/></>}
-     <text x="32" y="247" fill="#9aaec6" fontSize="12">{filtered[0]?.date.slice(0,10)}</text><text x="535" y="247" fill="#9aaec6" fontSize="12">{filtered[filtered.length-1]?.date.slice(0,10)}</text>
+ const moneyDelta=(v:number)=> (v>=0?'+':'−')+cash(Math.abs(v));
+ const priceLabel=(v:number)=>'$'+v.toFixed(v>=1000?0:2);
+ const content=<div className="stock-chart">
+  <div className="stock-chart-top"><div><span className="stock-overline">PRICE HISTORY</span><h3>{cash(last||null)} <small className={overallDelta>=0?'stock-up':'stock-down'}>{games.length&&first?percent((last/first-1)*100):'—'}</small></h3></div><div className="stock-time">{(['1W','1M','3M','1Y','ALL'] as const).map(r=><button key={r} className={r===range?'selected':''} onClick={()=>setRange(r)}>{r}</button>)}<button className="stock-expand-button" onClick={()=>setFullScreen(true)} aria-label="Open full-screen stock price chart">⛶ Full screen</button></div></div>
+  {games.length?<><svg className="stock-interactive-chart" viewBox="0 0 650 270" role="img" aria-label="Touch or drag to inspect each game and its actual stock price movement" onPointerMove={onMove} onPointerDown={e=>{setDragging(true);e.currentTarget.setPointerCapture(e.pointerId);onMove(e)}} onPointerUp={e=>{setDragging(false);if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId)}} onPointerCancel={()=>setDragging(false)} onPointerLeave={()=>{if(!dragging)setActive(null)}}>
+   {[0,1,2,3,4].map(i=>{const value=top-(top-bottom)*i/4;const lineY=y(value);return <g key={i}><line x1="60" x2="638" y1={lineY} y2={lineY} stroke="#415573" strokeDasharray="3 5" strokeWidth="1"/><text x="53" y={lineY+4} textAnchor="end" fill="#91a9c7" fontSize="11">{priceLabel(value)}</text></g>})}
+   {games.map((g,i)=>{
+    const rising=g.after>=g.before;
+    const prior=i>0?games[i-1]:null;
+    const continuous=prior?Math.abs(prior.after-g.before)<.015:false;
+    return <g key={g.gameId+':'+i}>
+     {prior&&<line x1={xAfter(i-1)} y1={y(prior.after)} x2={xBefore(i)} y2={y(g.before)} stroke={continuous?'#8c9db6':'#586981'} strokeWidth="1.5" strokeDasharray={continuous?'':'3 5'} opacity={continuous?.7:.45}/>}
+     <line x1={xBefore(i)} y1={y(g.before)} x2={xAfter(i)} y2={y(g.after)} stroke={rising?'#29d49f':'#fb6b83'} strokeWidth={active===i?5:3.5} strokeLinecap="round"/>
+     <circle cx={xAfter(i)} cy={y(g.after)} r={active===i?6:2.3} fill={rising?'#29d49f':'#fb6b83'} />
+    </g>
+   })}
+   {selected&&<><line x1={chosenX} x2={chosenX} y1={16} y2={236} stroke="#c2d2e6" strokeWidth="1.5" strokeDasharray="4 5"/><circle cx={chosenX} cy={chosenY} r="7" fill={diff!==null&&diff<0?'#fb6b83':'#29d49f'} stroke="#0f1a2c" strokeWidth="3"/></>}
+   <text x="60" y="258" fill="#9aaec6" fontSize="11">{games[0].date.slice(0,10)}</text>
+   <text x="638" y="258" fill="#9aaec6" textAnchor="end" fontSize="11">{games[games.length-1].date.slice(0,10)}</text>
    </svg>
    <div className="stock-game-inspector" aria-live="polite">
-    {selected?<><div className="stock-game-header"><span>{selected.date.slice(0,10)}</span><b className={changeClass}>{difference===null?'Price change unavailable':(difference>=0?'+':'−')+cash(Math.abs(difference))}</b></div>
+    {selected?<><div className="stock-game-header"><span>{selected.date.slice(0,10)}</span><b className={diff!==null&&diff>=0?'stock-up':'stock-down'}>{diff===null?'Price change unavailable':moneyDelta(diff)}</b></div>
      <div className="stock-game-line"><span>{selected.opponent?'vs '+selected.opponent:selected.event||'Game details unavailable'}</span><span>{selected.score||'Score unavailable'}</span>{selected.result&&<b className={selected.result==='W'?'stock-up':'stock-down'}>{selected.result}</b>}</div>
-     <div className="stock-game-prices"><span>Before {cash(previous??null)}</span><span>After {cash(selected.value)}</span></div>
-    </>:<span className="stock-muted">Touch or drag across the chart to inspect a game, opponent, final score, W/L, and stock price change.</span>}
-   </div>
-   </>
-  :<div className="stock-empty-chart">{current.length?<>No recorded stock price changes for this {range==='1W'?'week':range==='1M'?'month':range==='3M'?'three-month period':'year'}.<br/>Most recent recorded game: {current[current.length-1]?.date.slice(0,10)}.<br/>Select ALL to see earlier prices.</>:'No verified price-history events are published for this stock yet.'}</div>}
+     <div className="stock-game-prices"><span>Before {cash(selected.before)}</span><span>After {cash(selected.after)}</span></div>
+    </>:<span className="stock-muted">Touch or drag across the price chart to inspect an individual game and its price movement. Green segments rose; red segments fell. Dotted connectors indicate price resets or gaps between games.</span>}
+   </div></>:<div className="stock-empty-chart">{current.length?<>No recorded stock price changes for this {range==='1W'?'week':range==='1M'?'month':range==='3M'?'three-month period':'year'}.<br/>Most recent recorded game: {current[current.length-1]?.date.slice(0,10)}.<br/>Select ALL to see earlier prices.</>:'No verified price-history events are published for this stock yet.'}</div>}
  </div>;
+ return <>
+  {content}
+  {fullScreen&&<div className="stock-fullscreen-backdrop" role="presentation" onMouseDown={closeFullscreen}>
+   <div className="stock-fullscreen-dialog" role="dialog" aria-modal="true" aria-label="Full-screen interactive stock price chart" onMouseDown={e=>e.stopPropagation()}>
+    <div className="stock-fullscreen-header"><div><span className="stock-overline">SPATS STOCK EXCHANGE</span><h2>Interactive Price History</h2></div><button className="stock-fullscreen-close" onClick={closeFullscreen} aria-label="Close full-screen stock chart">✕</button></div>
+    {content}
+   </div>
+  </div>}
+ </>;
 }
+
 export default function StocksPage(){
  const [data,setData]=useState<Snapshot|null>(null),[error,setError]=useState(''),[loading,setLoading]=useState(true);
  const [tab,setTab]=useState<Tab>('overview'),[market,setMarket]=useState<'all'|'team'|'player'>('all'),[search,setSearch]=useState(''),[sort,setSort]=useState<Sort>('price'),[ascending,setAscending]=useState(false);
