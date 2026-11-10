@@ -34,3 +34,13 @@
 /* Make authoritative market price distinct from historical chart datapoints. */
 .stock-history-caption{display:block;color:#a9bdd6;font-size:12px;line-height:1.5;margin:5px 0 0}
 .stock-price-history-notice{margin:15px 0 0;border:1px solid #526178;background:#223148;color:#d7e6fa;border-radius:9px;padding:11px 13px;font-size:12px;line-height:1.55}
+
+/* Explicit season filters and season-opening price adjustments */
+.stock-chart .stock-time{align-items:center;gap:5px}
+.stock-chart .stock-time button{white-space:nowrap}
+.stock-season-adjustment{margin-top:8px;padding:12px 14px;border-radius:9px;border:1px solid #5c647c;background:#263148;color:#dce6f6;font-size:12px;line-height:1.55}
+.stock-season-adjustment strong{color:#f6cf83;font-size:13px}
+.stock-season-adjustment p{margin:5px 0 9px}
+.stock-adjustment-details{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;border-top:1px solid #48536c;padding-top:8px}
+.stock-adjustment-details b{font-weight:800}
+@media(max-width:550px){.stock-chart .stock-time{gap:3px}.stock-chart .stock-time button{font-size:11px;padding:7px 6px}.stock-adjustment-details{flex-direction:column}}
