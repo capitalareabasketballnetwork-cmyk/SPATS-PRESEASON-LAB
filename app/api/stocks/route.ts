@@ -7,6 +7,19 @@ type Row=Record<string,unknown>;
 const id=(v:unknown)=>String(v??'');
 const num=(v:unknown)=>typeof v==='number'?v:Number(v??0);
 const clean=(v:unknown)=>Number.isFinite(num(v))?num(v):0;
+// Supabase REST normally caps responses at 1,000 rows. Page through player
+// directories and V5 prices so every imported player can appear.
+async function fetchAllRows(db:ReturnType<ReturnType<typeof createClient>['schema']>,table:'player_seasons'|'player_ratings',select:string,season:number){
+ const rows:Row[]=[];
+ for(let offset=0;offset<12000;offset+=900){
+  const {data,error}=await db.from(table).select(select).eq('season',season).range(offset,offset+899);
+  if(error)throw error;
+  rows.push(...((data||[]) as Row[]));
+  if(!data||data.length<900)break;
+ }
+ return rows;
+}
+
 
 type EspnTeam={id:string;displayName:string;name:string;location:string;shortDisplayName:string;logos?:{href?:string}[]};
 const norm=(v:string)=>v.toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/&/g,'and').replace(/[^a-z0-9]+/g,' ').trim().replace(/\s+/g,' ');
@@ -151,7 +164,7 @@ export async function GET(req:NextRequest){
     if(publishedError)throw publishedError;
     const publishedPrice=published?.stock_price==null?null:clean(published.stock_price);
     const publishedUpdatedAt=published?.updated_at||null;
-    const {data,error}=await db.from('player_price_history').select('game_id,event_time,price_after,price_before,change_pct,event_type').eq('player_id',identifier).order('event_time',{ascending:true}).limit(1000);
+    const {data,error}=await db.from('player_price_history').select('game_id,event_time,price_after,price_before,change_pct,event_type').eq('player_id',identifier).eq('season',2027).eq('formula_version','V5').order('event_time',{ascending:true}).limit(1000);
     if(error)throw error;
     const records=(data||[]) as Row[];
     const gameIds=[...new Set(records.map(r=>id(r.game_id)).filter(v=>v&&v!=='null'))];
@@ -188,11 +201,11 @@ export async function GET(req:NextRequest){
    return fail('Invalid stock type.',400);
   }
   if(kind!=='overview')return fail('Unknown request.',400);
-  const [teamsResult,ratingsResult,playerSeasonsResult,playerRatingsResult]=await Promise.all([
+  const [teamsResult,ratingsResult,playerSeasons,playerRatings]=await Promise.all([
    db.from('teams').select('id,name,conference').eq('is_active',true).limit(500),
    db.from('current_ratings').select('team_id,stock_price,games_processed,updated_at').limit(500),
-   db.from('player_seasons').select('player_id,team_id,season,points_per_game,rebounds_per_game,assists_per_game').eq('season',2027).limit(1500),
-   db.from('player_ratings').select('player_id,season,stock_price,opening_price,games_processed,updated_at').eq('season',2027).limit(1500)
+   fetchAllRows(db,'player_seasons','player_id,team_id,season,points_per_game,rebounds_per_game,assists_per_game',2027),
+   fetchAllRows(db,'player_ratings','player_id,season,formula_version,stock_price,opening_price,games_processed,updated_at',2027)
   ]);
   if(teamsResult.error)throw teamsResult.error;
   if(ratingsResult.error)throw ratingsResult.error;
@@ -208,9 +221,8 @@ export async function GET(req:NextRequest){
   const teams=(teamsResult.data||[]).map((r:Row)=>{const rating=ratingById.get(id(r.id));return {id:id(r.id),name:id(r.name),conference:id(r.conference),logoUrl:logoByName.get(expand(id(r.name)))||null,price:rating?clean(rating.stock_price):null,games:rating?clean(rating.games_processed):0,updatedAt:rating?id(rating.updated_at):null};}).sort((a,b)=>(b.price??-1)-(a.price??-1));
   let players:Array<Record<string,unknown>>=[];
   let playerWarning='';
-  if(playerSeasonsResult.error){playerWarning=playerSeasonsResult.error.message;}
-  else{
-   const seasons=playerSeasonsResult.data||[];
+  {
+   const seasons=playerSeasons;
    const pids=[...new Set(seasons.map((s:Row)=>id(s.player_id)))].filter(Boolean);
    const playerById=new Map<string,Row>();
    for(let i=0;i<pids.length;i+=200){
@@ -218,7 +230,7 @@ export async function GET(req:NextRequest){
     if(error){playerWarning=error.message;break}
     for(const p of data||[])playerById.set(id(p.id),p);
    }
-   const priced=new Map((playerRatingsResult.data||[]).map((p:Row)=>[id(p.player_id),p]));
+   const priced=new Map(playerRatings.filter((p:Row)=>id(p.formula_version)==='V5').map((p:Row)=>[id(p.player_id),p]));
    players=seasons.map((s:Row)=>{const p=playerById.get(id(s.player_id));const r=priced.get(id(s.player_id));return {id:id(s.player_id),name:id(p?.full_name)||'Unknown player',position:id(p?.position),teamId:id(s.team_id),price:r?clean(r.stock_price):null,openingPrice:r?clean(r.opening_price):null,ppg:s.points_per_game==null?null:clean(s.points_per_game),rpg:s.rebounds_per_game==null?null:clean(s.rebounds_per_game),apg:s.assists_per_game==null?null:clean(s.assists_per_game),games:r?clean(r.games_processed):null};}).sort((a,b)=>Number(b.price??-1)-Number(a.price??-1));
   }
   return NextResponse.json({teams,players,coverage,playerWarning,asOf:new Date().toISOString(),playerPricesPublished:players.some(p=>typeof p.price==='number')},{headers:{'Cache-Control':'no-store'}});
