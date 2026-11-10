@@ -16,3 +16,17 @@
 .stock-player-identity>.stock-logo{position:absolute;right:-7px;bottom:-4px;border:2px solid #17263c;background:#f0f4fc}
 .stock-modal-person .stock-player-identity>.stock-logo{right:-4px;bottom:-3px}
 @media(max-width:550px){.stock-game-inspector{padding:12px}.stock-game-header b{font-size:18px}.stock-game-line{gap:7px}}
+
+/* Full-screen price research and labeled game-by-game movement */
+.stock-chart .stock-time .stock-expand-button{color:#f0d18d;border:1px solid #4e6684;border-radius:8px;background:#263a54;padding:8px 10px;margin-left:5px;white-space:nowrap}
+.stock-chart .stock-time .stock-expand-button:hover{background:#39516f}
+.stock-fullscreen-backdrop{position:fixed;inset:0;z-index:2000;background:#040b17ed;display:flex;align-items:center;justify-content:center;padding:15px}
+.stock-fullscreen-dialog{width:min(1440px,100%);height:min(95dvh,1100px);background:#111f33;border:1px solid #425b7c;border-radius:18px;box-shadow:0 30px 100px #000b;display:flex;flex-direction:column;overflow:auto;padding:24px}
+.stock-fullscreen-header{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:0 3px 15px}
+.stock-fullscreen-header h2{font-size:clamp(18px,3vw,28px);margin:5px 0;color:#edf4ff}
+.stock-fullscreen-close{display:grid;place-items:center;width:42px;height:42px;flex-shrink:0;border-radius:10px;border:1px solid #4d617e;background:#273a55;color:#f7faff;font-size:23px;cursor:pointer}
+.stock-fullscreen-dialog>.stock-chart{flex:1;display:flex;flex-direction:column;min-height:0}
+.stock-fullscreen-dialog .stock-chart>svg{flex:1;min-height:240px;max-height:calc(95dvh - 345px);object-fit:fill}
+.stock-fullscreen-dialog .stock-game-inspector{margin-top:auto}
+.stock-fullscreen-dialog .stock-chart .stock-expand-button{display:none}
+@media(max-width:600px){.stock-fullscreen-backdrop{padding:0}.stock-fullscreen-dialog{width:100%;height:100dvh;max-height:none;border-radius:0;padding:16px}.stock-fullscreen-dialog .stock-chart{padding:13px}.stock-fullscreen-dialog .stock-chart>svg{max-height:calc(100dvh - 380px);min-height:200px}.stock-fullscreen-dialog .stock-chart-top{align-items:flex-start}}
