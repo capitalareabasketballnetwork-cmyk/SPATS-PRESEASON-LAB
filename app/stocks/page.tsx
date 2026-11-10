@@ -44,12 +44,27 @@ function PriceChart({history}:{history:History[]}){
  const [active,setActive]=useState<number|null>(null);
  const [fullScreen,setFullScreen]=useState(false);
  const [dragging,setDragging]=useState(false);
- const current=useMemo(()=>history.filter(h=>h.date&&Number.isFinite(h.value)).slice().sort((a,b)=>a.date.localeCompare(b.date)||a.gameId.localeCompare(b.gameId)),[history]);
+ const current=useMemo(()=>{
+  const unique=new Map<string,History>();
+  for(const row of history){
+   const day=row.date?.slice(0,10);
+   if(!day||!/^\\d{4}-\\d{2}-\\d{2}$/.test(day)||!Number.isFinite(row.value))continue;
+   const gameId=row.gameId||day;
+   if(!unique.has(gameId))unique.set(gameId,{...row,date:day});
+  }
+  return [...unique.values()].sort((a,b)=>a.date.localeCompare(b.date)||a.gameId.localeCompare(b.gameId));
+ },[history]);
  const filtered=useMemo(()=>{
   if(range==='ALL')return current;
   const days={'1W':7,'1M':30,'3M':90,'1Y':365}[range];
-  const cutoff=Date.now()-days*86400000;
-  return current.filter(h=>new Date(h.date).getTime()>=cutoff);
+  // Use an exact calendar-day cutoff, not a time-of-day comparison to midnight.
+  const now=new Date();
+  const beginning=new Date(Date.UTC(now.getFullYear(),now.getMonth(),now.getDate()-days+1));
+  const end=new Date(Date.UTC(now.getFullYear(),now.getMonth(),now.getDate()+1));
+  return current.filter(h=>{
+   const pointDate=new Date(h.date+'T00:00:00Z');
+   return pointDate>=beginning&&pointDate<end;
+  });
  },[current,range]);
  useEffect(()=>{setActive(null)},[range,history]);
  useEffect(()=>{
@@ -63,6 +78,7 @@ function PriceChart({history}:{history:History[]}){
  const games=filtered;
  const first=games[0]?.value??0,last=games[games.length-1]?.value??0;
  const overallDelta=last-first;
+ const lineColor=overallDelta>=0?'#29d49f':'#fb6b83';
  const values=games.flatMap(g=>[g.value]);
  const min=values.length?Math.min(...values):0,max=values.length?Math.max(...values):1;
  const padding=Math.max(.5,(max-min)*.12),bottom=min-padding,top=max+padding;
@@ -85,19 +101,18 @@ function PriceChart({history}:{history:History[]}){
  };
  const moneyDelta=(v:number)=> (v>=0?'+':'−')+cash(Math.abs(v));
  const priceLabel=(v:number)=>'$'+v.toFixed(v>=1000?0:2);
- const content=<div className="stock-chart">
-  <div className="stock-chart-top"><div><span className="stock-overline">PRICE HISTORY</span><h3>{cash(last||null)} <small className={overallDelta>=0?'stock-up':'stock-down'}>{games.length&&first?percent((last/first-1)*100):'—'}</small></h3></div><div className="stock-time">{(['1W','1M','3M','1Y','ALL'] as const).map(r=><button key={r} className={r===range?'selected':''} onClick={()=>setRange(r)}>{r}</button>)}<button className="stock-expand-button" onClick={()=>setFullScreen(true)} aria-label="Open full-screen stock price chart">⛶ Full screen</button></div></div>
-  {games.length?<><svg className="stock-interactive-chart" viewBox="0 0 650 270" role="img" aria-label="Touch or drag to inspect each game and its actual stock price movement" onPointerMove={onMove} onPointerDown={e=>{setDragging(true);e.currentTarget.setPointerCapture(e.pointerId);onMove(e)}} onPointerUp={e=>{setDragging(false);if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId)}} onPointerCancel={()=>setDragging(false)} onPointerLeave={()=>{if(!dragging)setActive(null)}}>
+ const renderChart=(expanded:boolean)=><div className="stock-chart" key={expanded?'full-chart-'+range:'modal-chart-'+range}>
+  <div className="stock-chart-top"><div><span className="stock-overline">PRICE HISTORY</span><h3>{cash(last||null)} <small className={overallDelta>=0?'stock-up':'stock-down'}>{games.length&&first?percent((last/first-1)*100):'—'}</small></h3></div><div className="stock-time">{(['1W','1M','3M','1Y','ALL'] as const).map(r=><button key={r} className={r===range?'selected':''} onClick={()=>{setRange(r);setActive(null)}}>{r}</button>)}{!expanded&&<button className="stock-expand-button" onClick={()=>setFullScreen(true)} aria-label="Open full-screen stock price chart">⛶ Full screen</button>}</div></div>
+  {games.length?<><svg key={range+(expanded?'-fullscreen':'-modal')} className="stock-interactive-chart" viewBox="0 0 650 270" role="img" aria-label="Touch or drag to inspect each game and its actual stock price movement" onPointerMove={onMove} onPointerDown={e=>{setDragging(true);e.currentTarget.setPointerCapture(e.pointerId);onMove(e)}} onPointerUp={e=>{setDragging(false);if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId)}} onPointerCancel={()=>setDragging(false)} onPointerLeave={()=>{if(!dragging)setActive(null)}}>
    {[0,1,2,3,4].map(i=>{const value=top-(top-bottom)*i/4;const lineY=y(value);return <g key={i}><line x1="60" x2="638" y1={lineY} y2={lineY} stroke="#415573" strokeDasharray="3 5" strokeWidth="1"/><text x="53" y={lineY+4} textAnchor="end" fill="#91a9c7" fontSize="11">{priceLabel(value)}</text></g>})}
    {games.slice(1).map((g,offset)=>{
-    const i=offset+1,prior=games[offset],rising=g.value>=prior.value;
-    return <line key={g.gameId+':line'} x1={x(offset)} y1={y(prior.value)} x2={x(i)} y2={y(g.value)} stroke={rising?'#29d49f':'#fb6b83'} strokeWidth={active===i?4:3} strokeLinecap="round"/>;
+    const i=offset+1,prior=games[offset];
+    return <line key={g.gameId+':line'} x1={x(offset)} y1={y(prior.value)} x2={x(i)} y2={y(g.value)} stroke={lineColor} strokeWidth={active===i?4:3} strokeLinecap="round"/>;
    })}
    {games.map((g,i)=>{
-    const rising=i===0?(g.priceBefore==null?true:g.value>=g.priceBefore):g.value>=games[i-1].value;
-    return <circle key={g.gameId+':dot'} cx={x(i)} cy={y(g.value)} r={active===i?7:4} fill={rising?'#29d49f':'#fb6b83'} stroke="#0f1a2c" strokeWidth="1.5"/>;
+    return <circle key={g.gameId+':dot'} cx={x(i)} cy={y(g.value)} r={active===i?7:4} fill={lineColor} stroke="#0f1a2c" strokeWidth="1.5"/>;
    })}
-   {selected&&<><line x1={chosenX} x2={chosenX} y1={16} y2={236} stroke="#c2d2e6" strokeWidth="1.5" strokeDasharray="4 5"/><circle cx={chosenX} cy={chosenY} r="7" fill={diff!==null&&diff<0?'#fb6b83':'#29d49f'} stroke="#0f1a2c" strokeWidth="3"/></>}
+   {selected&&<><line x1={chosenX} x2={chosenX} y1={16} y2={236} stroke="#c2d2e6" strokeWidth="1.5" strokeDasharray="4 5"/><circle cx={chosenX} cy={chosenY} r="7" fill={lineColor} stroke="#0f1a2c" strokeWidth="3"/></>}
    <text x="60" y="258" fill="#9aaec6" fontSize="11">{games[0].date.slice(0,10)}</text>
    <text x="638" y="258" fill="#9aaec6" textAnchor="end" fontSize="11">{games[games.length-1].date.slice(0,10)}</text>
    </svg>
@@ -105,15 +120,15 @@ function PriceChart({history}:{history:History[]}){
     {selected?<><div className="stock-game-header"><span>{selected.date.slice(0,10)}</span><b className={diff!==null&&diff>=0?'stock-up':'stock-down'}>{diff===null?'Price change unavailable':moneyDelta(diff)}</b></div>
      <div className="stock-game-line"><span>{selected.opponent?'vs '+selected.opponent:selected.event||'Game details unavailable'}</span><span>{selected.score||'Score unavailable'}</span>{selected.result&&<b className={selected.result==='W'?'stock-up':'stock-down'}>{selected.result}</b>}</div>
      <div className="stock-game-prices"><span>Before {cash(before??null)}</span><span>After {cash(selected.value)}</span></div>
-    </>:<span className="stock-muted">Touch or drag across the price chart to inspect an individual game and its price movement. Green segments rose; red segments fell. Each dot is one game's closing stock price, and each line connects consecutive games.</span>}
+    </>:<span className="stock-muted">Touch or drag across the price chart to inspect an individual game and its price movement. The chart is green when the stock gained value over this selected period and red when it lost value. Each dot represents one game.</span>}
    </div></>:<div className="stock-empty-chart">{current.length?<>No recorded stock price changes for this {range==='1W'?'week':range==='1M'?'month':range==='3M'?'three-month period':'year'}.<br/>Most recent recorded game: {current[current.length-1]?.date.slice(0,10)}.<br/>Select ALL to see earlier prices.</>:'No verified price-history events are published for this stock yet.'}</div>}
  </div>;
  return <>
-  {content}
+  {renderChart(false)}
   {fullScreen&&<div className="stock-fullscreen-backdrop" role="presentation" onMouseDown={closeFullscreen}>
    <div className="stock-fullscreen-dialog" role="dialog" aria-modal="true" aria-label="Full-screen interactive stock price chart" onMouseDown={e=>e.stopPropagation()}>
     <div className="stock-fullscreen-header"><div><span className="stock-overline">SPATS STOCK EXCHANGE</span><h2>Interactive Price History</h2></div><button className="stock-fullscreen-close" onClick={closeFullscreen} aria-label="Close full-screen stock chart">✕</button></div>
-    {content}
+    {renderChart(true)}
    </div>
   </div>}
  </>;
