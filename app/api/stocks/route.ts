@@ -158,7 +158,7 @@ export async function GET(req:NextRequest){
   ]);
   const latestGameDate=(currentGamesResult.data||[])[0]?.game_date||null;
   const playerGamesCovered=new Set((currentBoxscoreResult.data||[]).map(r=>id(r.game_id))).size;
-  const coverage={season:2027,teamGames:currentGamesResult.count??null,latestTeamGameDate:latestGameDate,playerGamesCovered,playerCoveragePartial:Boolean(currentBoxscoreResult.error)||(currentBoxscoreResult.data||[]).length>=1000};
+  const coverage={season:2027,teamGames:currentGamesResult.count??0,latestTeamGameDate:latestGameDate,playerGamesCovered,playerCoveragePartial:Boolean(currentBoxscoreResult.error)||(currentBoxscoreResult.data||[]).length>=1000};
   const logoByName=await officialTeamLogos();
   const ratingById=new Map((ratingsResult.data||[]).map((r:Row)=>[id(r.team_id),r]));
   const teams=(teamsResult.data||[]).map((r:Row)=>{const rating=ratingById.get(id(r.id));return {id:id(r.id),name:id(r.name),conference:id(r.conference),logoUrl:logoByName.get(expand(id(r.name)))||null,price:rating?clean(rating.stock_price):null,games:rating?clean(rating.games_processed):0,updatedAt:rating?id(rating.updated_at):null};}).sort((a,b)=>(b.price??-1)-(a.price??-1));
