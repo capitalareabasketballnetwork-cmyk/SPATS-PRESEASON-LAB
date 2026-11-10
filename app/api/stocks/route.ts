@@ -72,7 +72,7 @@ export async function GET(req:NextRequest){
       const athletes=groups.flatMap((g:Row)=>Array.isArray(g.items)?g.items:[g]);
       const matched=athletes.filter((athlete:Row)=>expand(id(athlete.displayName||athlete.fullName))===expand(name));
       if(matched.length===1){
-       const href=id(matched[0]?.headshot?.href);
+       const href=id((matched[0]?.headshot as {href?:string}|undefined)?.href);
        if(/^https:\/\/[^/]*espncdn\.com\//.test(href))photoUrl=href;
       }
      }
