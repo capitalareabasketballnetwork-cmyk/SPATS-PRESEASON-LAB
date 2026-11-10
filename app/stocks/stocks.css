@@ -44,3 +44,5 @@
 .stock-adjustment-details{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;border-top:1px solid #48536c;padding-top:8px}
 .stock-adjustment-details b{font-weight:800}
 @media(max-width:550px){.stock-chart .stock-time{gap:3px}.stock-chart .stock-time button{font-size:11px;padding:7px 6px}.stock-adjustment-details{flex-direction:column}}
+
+.stock-history-method{color:#8fa9c7;font-size:11px;line-height:1.45;margin:9px 0 0;padding:0 2px}
