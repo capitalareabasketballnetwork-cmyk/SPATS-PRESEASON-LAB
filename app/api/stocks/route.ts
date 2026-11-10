@@ -84,6 +84,13 @@ export async function GET(req:NextRequest){
    if(!/^[a-zA-Z0-9_-]{1,100}$/.test(identifier))return fail('Invalid stock identifier.',400);
    const asset=req.nextUrl.searchParams.get('asset');
    if(asset==='team'){
+    // The published Supabase current_ratings row, not the final historical event,
+    // is the authoritative current market price on every Stock Exchange view.
+    const {data:published,error:publishedError}=await db.from('current_ratings')
+      .select('stock_price,updated_at,games_processed').eq('team_id',identifier).maybeSingle();
+    if(publishedError)throw publishedError;
+    const publishedPrice=published?.stock_price==null?null:clean(published.stock_price);
+    const publishedUpdatedAt=published?.updated_at||null;
     const {data:hist,error}=await db.from('elo_history').select('game_id,rating_before,rating_after').eq('team_id',identifier).limit(1000);
     if(error)throw error;
     // Multiple recomputations can leave more than one history row per game.
@@ -120,9 +127,14 @@ export async function GET(req:NextRequest){
      const result=ownScore==null||opponentScore==null?null:clean(ownScore)>clean(opponentScore)?'W':clean(ownScore)<clean(opponentScore)?'L':null;
      return {gameId:id(r.game_id),date:id(g.game_date),season:clean(g.season),value:Math.round(after*100)/100,priceBefore:Math.round(before*100)/100,priceChange:Math.round((after-before)*100)/100,opponent:teamNames.get(opponentId)||'Opponent unavailable',score:ownScore==null||opponentScore==null?null:`${clean(ownScore)}–${clean(opponentScore)}`,result};
     }).filter((v):v is NonNullable<typeof v>=>v!==null).sort((a,b)=>a.date.localeCompare(b.date)||a.gameId.localeCompare(b.gameId));
-    return NextResponse.json({data,latestGameDate:data[data.length-1]?.date||null,source:'SPATS team stock price history'},{headers:{'Cache-Control':'no-store'}});
+    return NextResponse.json({data,publishedPrice,publishedUpdatedAt,latestGameDate:data[data.length-1]?.date||null,source:'SPATS team stock price history'},{headers:{'Cache-Control':'no-store'}});
    }
    if(asset==='player'){
+    const {data:published,error:publishedError}=await db.from('player_ratings')
+      .select('stock_price,updated_at').eq('player_id',identifier).eq('season',2027).maybeSingle();
+    if(publishedError)throw publishedError;
+    const publishedPrice=published?.stock_price==null?null:clean(published.stock_price);
+    const publishedUpdatedAt=published?.updated_at||null;
     const {data,error}=await db.from('player_price_history').select('game_id,event_time,price_after,price_before,change_pct,event_type').eq('player_id',identifier).order('event_time',{ascending:true}).limit(1000);
     if(error)throw error;
     const records=(data||[]) as Row[];
@@ -155,7 +167,7 @@ export async function GET(req:NextRequest){
      const result=ownScore==null||otherScore==null?null:clean(ownScore)>clean(otherScore)?'W':clean(ownScore)<clean(otherScore)?'L':null;
      return {gameId,date:id(g?.game_date||r.event_time),value:clean(r.price_after),priceBefore:r.price_before==null?null:clean(r.price_before),priceChange:r.price_before==null?null:Math.round((clean(r.price_after)-clean(r.price_before))*100)/100,change:clean(r.change_pct),event:id(r.event_type),opponent:other?names.get(other)||null:null,score:ownScore==null||otherScore==null?null:`${clean(ownScore)}–${clean(otherScore)}`,result};
     }).sort((a,b)=>a.date.localeCompare(b.date)||a.gameId.localeCompare(b.gameId));
-    return NextResponse.json({data:rows,latestGameDate:rows[rows.length-1]?.date||null,source:'SPATS player stock history'},{headers:{'Cache-Control':'no-store'}});
+    return NextResponse.json({data:rows,publishedPrice,publishedUpdatedAt,latestGameDate:rows[rows.length-1]?.date||null,source:'SPATS player stock history'},{headers:{'Cache-Control':'no-store'}});
    }
    return fail('Invalid stock type.',400);
   }
