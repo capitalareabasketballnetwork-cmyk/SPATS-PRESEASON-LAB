@@ -59,22 +59,71 @@ export async function GET(req:NextRequest){
    if(!/^[a-zA-Z0-9_-]{1,100}$/.test(identifier))return fail('Invalid stock identifier.',400);
    const asset=req.nextUrl.searchParams.get('asset');
    if(asset==='team'){
-    const {data:hist,error}=await db.from('elo_history').select('game_id,rating_after').eq('team_id',identifier).limit(1000);
+    const {data:hist,error}=await db.from('elo_history').select('game_id,rating_before,rating_after').eq('team_id',identifier).limit(1000);
     if(error)throw error;
-    const ids=[...new Set((hist||[]).map((v:Row)=>id(v.game_id)))];
-    const dates:Record<string,string>={};
-    for(let i=0;i<ids.length;i+=200){
-     const {data:games,error:ge}=await db.from('games').select('id,game_date').in('id',ids.slice(i,i+200));
+    const history=(hist||[]) as Row[];
+    const ids=[...new Set(history.map(r=>id(r.game_id)).filter(Boolean))];
+    const gameMap=new Map<string,Row>();
+    for(let i=0;i<ids.length;i+=150){
+     const {data:games,error:ge}=await db.from('games').select('id,game_date,season,home_team_id,away_team_id,home_score,away_score,status').in('id',ids.slice(i,i+150));
      if(ge)throw ge;
-     for(const g of games||[])dates[id(g.id)]=id(g.game_date);
+     for(const g of games||[])gameMap.set(id(g.id),g as Row);
     }
-    const data=(hist||[]).map((r:Row)=>({gameId:id(r.game_id),date:dates[id(r.game_id)]||'',value:Math.round((100*Math.pow(2,(clean(r.rating_after)-1500)/300))*100)/100})).filter(x=>x.date).sort((a,b)=>a.date.localeCompare(b.date)||a.gameId.localeCompare(b.gameId));
-    return NextResponse.json({data,source:'SPATS team stock price history'}, {headers:{'Cache-Control':'no-store'}});
+    const opponents=[...new Set(Array.from(gameMap.values()).flatMap(g=>[id(g.home_team_id),id(g.away_team_id)]))].filter(Boolean);
+    const teamNames=new Map<string,string>();
+    for(let i=0;i<opponents.length;i+=150){
+     const {data:teams,error:te}=await db.from('teams').select('id,name').in('id',opponents.slice(i,i+150));
+     if(te)throw te;
+     for(const t of teams||[])teamNames.set(id(t.id),id(t.name));
+    }
+    const data=history.map(r=>{
+     const g=gameMap.get(id(r.game_id));
+     if(!g||!g.game_date)return null;
+     const home=id(g.home_team_id)===identifier;
+     const opponentId=home?id(g.away_team_id):id(g.home_team_id);
+     const ownScore=home?g.home_score:g.away_score;
+     const opponentScore=home?g.away_score:g.home_score;
+     const before=100*Math.pow(2,(clean(r.rating_before)-1500)/300);
+     const after=100*Math.pow(2,(clean(r.rating_after)-1500)/300);
+     const result=ownScore==null||opponentScore==null?null:clean(ownScore)>clean(opponentScore)?'W':clean(ownScore)<clean(opponentScore)?'L':null;
+     return {gameId:id(r.game_id),date:id(g.game_date),season:clean(g.season),value:Math.round(after*100)/100,priceBefore:Math.round(before*100)/100,priceChange:Math.round((after-before)*100)/100,opponent:teamNames.get(opponentId)||'Opponent unavailable',score:ownScore==null||opponentScore==null?null:`${clean(ownScore)}–${clean(opponentScore)}`,result};
+    }).filter((v):v is NonNullable<typeof v>=>v!==null).sort((a,b)=>a.date.localeCompare(b.date)||a.gameId.localeCompare(b.gameId));
+    return NextResponse.json({data,latestGameDate:data[data.length-1]?.date||null,source:'SPATS team stock price history'},{headers:{'Cache-Control':'no-store'}});
    }
    if(asset==='player'){
-    const {data,error}=await db.from('player_price_history').select('game_id,event_time,price_after,change_pct,event_type').eq('player_id',identifier).order('event_time',{ascending:true}).limit(1000);
+    const {data,error}=await db.from('player_price_history').select('game_id,event_time,price_after,price_before,change_pct,event_type').eq('player_id',identifier).order('event_time',{ascending:true}).limit(1000);
     if(error)throw error;
-    return NextResponse.json({data:(data||[]).map((r:Row)=>({gameId:id(r.game_id),date:id(r.event_time),value:clean(r.price_after),change:clean(r.change_pct),event:id(r.event_type)})),source:'SPATS player stock history'},{headers:{'Cache-Control':'no-store'}});
+    const records=(data||[]) as Row[];
+    const gameIds=[...new Set(records.map(r=>id(r.game_id)).filter(v=>v&&v!=='null'))];
+    const gameMap=new Map<string,Row>();
+    for(let i=0;i<gameIds.length;i+=150){
+     const {data:games,error:ge}=await db.from('games').select('id,game_date,home_team_id,away_team_id,home_score,away_score').in('id',gameIds.slice(i,i+150));
+     if(ge)throw ge;
+     for(const g of games||[])gameMap.set(id(g.id),g as Row);
+    }
+    const teamSet=[...new Set(Array.from(gameMap.values()).flatMap(g=>[id(g.home_team_id),id(g.away_team_id)]))].filter(Boolean);
+    const names=new Map<string,string>();
+    for(let i=0;i<teamSet.length;i+=150){
+     const {data:teams,error:te}=await db.from('teams').select('id,name').in('id',teamSet.slice(i,i+150));
+     if(te)throw te;
+     for(const t of teams||[])names.set(id(t.id),id(t.name));
+    }
+    const playerTeamByGame=new Map<string,string>();
+    for(let i=0;i<gameIds.length;i+=150){
+     const {data:appearances,error:pe}=await db.from('player_games').select('game_id,team_id').eq('player_id',identifier).in('game_id',gameIds.slice(i,i+150));
+     if(pe)throw pe;
+     for(const p of appearances||[])playerTeamByGame.set(id(p.game_id),id(p.team_id));
+    }
+    const rows=records.map(r=>{
+     const gameId=id(r.game_id),g=gameMap.get(gameId),ownTeam=playerTeamByGame.get(gameId);
+     const isHome=g&&ownTeam?id(g.home_team_id)===ownTeam:null;
+     const other=isHome===null?'':isHome?id(g?.away_team_id):id(g?.home_team_id);
+     const ownScore=isHome===null?null:isHome?g?.home_score:g?.away_score;
+     const otherScore=isHome===null?null:isHome?g?.away_score:g?.home_score;
+     const result=ownScore==null||otherScore==null?null:clean(ownScore)>clean(otherScore)?'W':clean(ownScore)<clean(otherScore)?'L':null;
+     return {gameId,date:id(g?.game_date||r.event_time),value:clean(r.price_after),priceBefore:r.price_before==null?null:clean(r.price_before),priceChange:r.price_before==null?null:Math.round((clean(r.price_after)-clean(r.price_before))*100)/100,change:clean(r.change_pct),event:id(r.event_type),opponent:other?names.get(other)||null:null,score:ownScore==null||otherScore==null?null:`${clean(ownScore)}–${clean(otherScore)}`,result};
+    }).sort((a,b)=>a.date.localeCompare(b.date)||a.gameId.localeCompare(b.gameId));
+    return NextResponse.json({data:rows,latestGameDate:rows[rows.length-1]?.date||null,source:'SPATS player stock history'},{headers:{'Cache-Control':'no-store'}});
    }
    return fail('Invalid stock type.',400);
   }
@@ -87,6 +136,13 @@ export async function GET(req:NextRequest){
   ]);
   if(teamsResult.error)throw teamsResult.error;
   if(ratingsResult.error)throw ratingsResult.error;
+  const [currentGamesResult,currentBoxscoreResult]=await Promise.all([
+   db.from('games').select('id,game_date').eq('season',2027).eq('status','final').order('game_date',{ascending:false}).limit(1000),
+   db.from('player_games').select('game_id').eq('season',2027).limit(10000)
+  ]);
+  const latestGameDate=(currentGamesResult.data||[])[0]?.game_date||null;
+  const playerGamesCovered=new Set((currentBoxscoreResult.data||[]).map(r=>id(r.game_id))).size;
+  const coverage={season:2027,teamGames:(currentGamesResult.data||[]).length,latestTeamGameDate:latestGameDate,playerGamesCovered,playerCoveragePartial:Boolean(currentBoxscoreResult.error)};
   const logoByName=await officialTeamLogos();
   const ratingById=new Map((ratingsResult.data||[]).map((r:Row)=>[id(r.team_id),r]));
   const teams=(teamsResult.data||[]).map((r:Row)=>{const rating=ratingById.get(id(r.id));return {id:id(r.id),name:id(r.name),conference:id(r.conference),logoUrl:logoByName.get(expand(id(r.name)))||null,price:rating?clean(rating.stock_price):null,games:rating?clean(rating.games_processed):0,updatedAt:rating?id(rating.updated_at):null};}).sort((a,b)=>(b.price??-1)-(a.price??-1));
@@ -105,7 +161,7 @@ export async function GET(req:NextRequest){
    const priced=new Map((playerRatingsResult.data||[]).map((p:Row)=>[id(p.player_id),p]));
    players=seasons.map((s:Row)=>{const p=playerById.get(id(s.player_id));const r=priced.get(id(s.player_id));return {id:id(s.player_id),name:id(p?.full_name)||'Unknown player',position:id(p?.position),teamId:id(s.team_id),price:r?clean(r.stock_price):null,openingPrice:r?clean(r.opening_price):null,ppg:s.points_per_game==null?null:clean(s.points_per_game),rpg:s.rebounds_per_game==null?null:clean(s.rebounds_per_game),apg:s.assists_per_game==null?null:clean(s.assists_per_game),games:r?clean(r.games_processed):null};}).sort((a,b)=>Number(b.price??-1)-Number(a.price??-1));
   }
-  return NextResponse.json({teams,players,playerWarning,asOf:new Date().toISOString(),playerPricesPublished:players.some(p=>typeof p.price==='number')},{headers:{'Cache-Control':'no-store'}});
+  return NextResponse.json({teams,players,coverage,playerWarning,asOf:new Date().toISOString(),playerPricesPublished:players.some(p=>typeof p.price==='number')},{headers:{'Cache-Control':'no-store'}});
  }catch(e){
   const err=dbError(e);
   console.error('SPATS market snapshot error:',JSON.stringify(err));
