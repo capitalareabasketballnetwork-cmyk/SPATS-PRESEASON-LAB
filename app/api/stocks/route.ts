@@ -86,7 +86,14 @@ export async function GET(req:NextRequest){
    if(asset==='team'){
     const {data:hist,error}=await db.from('elo_history').select('game_id,rating_before,rating_after').eq('team_id',identifier).limit(1000);
     if(error)throw error;
-    const history=(hist||[]) as Row[];
+    // Multiple recomputations can leave more than one history row per game.
+    // Plot one canonical game point rather than multiple price paths at the same date.
+    const uniqueHistory=new Map<string,Row>();
+    for(const row of (hist||[]) as Row[]){
+     const gameId=id(row.game_id);
+     if(gameId&&!uniqueHistory.has(gameId))uniqueHistory.set(gameId,row);
+    }
+    const history=[...uniqueHistory.values()];
     const ids=[...new Set(history.map(r=>id(r.game_id)).filter(Boolean))];
     const gameMap=new Map<string,Row>();
     for(let i=0;i<ids.length;i+=150){
