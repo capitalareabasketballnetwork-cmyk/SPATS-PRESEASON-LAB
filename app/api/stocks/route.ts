@@ -115,7 +115,7 @@ export async function GET(req:NextRequest){
      if(te)throw te;
      for(const t of teams||[])teamNames.set(id(t.id),id(t.name));
     }
-    const data=history.map(r=>{
+    const rawData=history.map(r=>{
      const g=gameMap.get(id(r.game_id));
      if(!g||!g.game_date)return null;
      const home=id(g.home_team_id)===identifier;
@@ -127,7 +127,23 @@ export async function GET(req:NextRequest){
      const result=ownScore==null||opponentScore==null?null:clean(ownScore)>clean(opponentScore)?'W':clean(ownScore)<clean(opponentScore)?'L':null;
      return {gameId:id(r.game_id),date:id(g.game_date),season:clean(g.season),value:Math.round(after*100)/100,priceBefore:Math.round(before*100)/100,priceChange:Math.round((after-before)*100)/100,opponent:teamNames.get(opponentId)||'Opponent unavailable',score:ownScore==null||opponentScore==null?null:`${clean(ownScore)}–${clean(opponentScore)}`,result};
     }).filter((v):v is NonNullable<typeof v>=>v!==null).sort((a,b)=>a.date.localeCompare(b.date)||a.gameId.localeCompare(b.gameId));
-    return NextResponse.json({data,publishedPrice,publishedUpdatedAt,latestGameDate:data[data.length-1]?.date||null,source:'SPATS team stock price history'},{headers:{'Cache-Control':'no-store'}});
+    // The archive records model states, whereas current_ratings is the published
+    // current market snapshot. Re-anchor the complete recorded game path to the
+    // authoritative published price, preserving its percentage changes.
+    // This is a reconstructed historical trend, not a claim that re-anchored
+    // historical amounts were independently stored in Supabase.
+    const processed=published?.games_processed==null?null:clean(published.games_processed);
+    const fullyCovered=publishedPrice!==null&&rawData.length>0&&processed===rawData.length;
+    const rawLast=rawData[rawData.length-1]?.value||0;
+    const anchored=fullyCovered&&rawLast>0;
+    const factor=anchored?publishedPrice!/rawLast:1;
+    const data=anchored?rawData.map((point,index)=>{
+      const value=index===rawData.length-1?publishedPrice!:Math.round(point.value*factor*100)/100;
+      const priceBefore=Math.round(point.priceBefore*factor*100)/100;
+      return {...point,value,priceBefore,priceChange:Math.round((value-priceBefore)*100)/100};
+    }):rawData;
+    const historyStatus=anchored?'rebased-to-published':processed!==null&&processed!==rawData.length?'incomplete-history':'unverified-history';
+    return NextResponse.json({data,publishedPrice,publishedUpdatedAt,historyStatus,recordedGames:rawData.length,publishedGamesProcessed:processed,latestGameDate:data[data.length-1]?.date||null,source:'SPATS reconstructed team stock price history'},{headers:{'Cache-Control':'no-store'}});
    }
    if(asset==='player'){
     const {data:published,error:publishedError}=await db.from('player_ratings')
