@@ -55,6 +55,22 @@ export async function GET(req:NextRequest){
  const kind=req.nextUrl.searchParams.get('kind')||'overview';
  const identifier=req.nextUrl.searchParams.get('id')||'';
  try{
+  if(kind==='portrait'){
+   const name=req.nextUrl.searchParams.get('name')||'';
+   if(!/^\\d{1,15}$/.test(identifier)||name.length<3)return fail('Invalid player.',400);
+   try{
+    const response=await fetch(`https://site.web.api.espn.com/apis/common/v3/sports/basketball/mens-college-basketball/athletes/${identifier}/overview`,{next:{revalidate:86400}});
+    if(!response.ok)return NextResponse.json({photoUrl:null},{headers:{'Cache-Control':'public, max-age=3600'}});
+    const body=await response.json();
+    const athlete=body?.athlete||body?.player||body?.profile?.athlete;
+    const realName=id(athlete?.displayName||athlete?.fullName||body?.displayName);
+    const photoUrl=id(athlete?.headshot?.href||body?.athlete?.headshot?.href);
+    // Never display a portrait unless ESPN independently confirms the athlete's identity.
+    const matches=expand(realName)===expand(name);
+    const verifiedUrl=matches&&(photoUrl.startsWith('https://a.espncdn.com/')||photoUrl.startsWith('https://espncdn.com/'))?photoUrl:matches?`https://a.espncdn.com/i/headshots/mens-college-basketball/players/full/${identifier}.png`:null;
+    return NextResponse.json({photoUrl:verifiedUrl},{headers:{'Cache-Control':'public, max-age=3600'}});
+   }catch{return NextResponse.json({photoUrl:null},{headers:{'Cache-Control':'public, max-age=900'}})}
+  }
   if(kind==='history'){
    if(!/^[a-zA-Z0-9_-]{1,100}$/.test(identifier))return fail('Invalid stock identifier.',400);
    const asset=req.nextUrl.searchParams.get('asset');
