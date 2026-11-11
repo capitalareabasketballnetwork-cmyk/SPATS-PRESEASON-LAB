@@ -93,6 +93,89 @@ export async function GET(req:NextRequest){
    }
    return NextResponse.json({photoUrl},{headers:{'Cache-Control':'public, max-age=3600'}});
   }
+  if(kind==='market-lines'){
+   // Build one current-season price path for every team from *V3-only*
+   // historical Elo events. Historical points are indicative and anchored to
+   // published current_ratings, which remains the price source of truth.
+   const [teamsResult,ratingsResult]=await Promise.all([
+    db.from('teams').select('id,name,conference').eq('is_active',true).limit(500),
+    db.from('current_ratings').select('team_id,stock_price').limit(500)
+   ]);
+   if(teamsResult.error)throw teamsResult.error;
+   if(ratingsResult.error)throw ratingsResult.error;
+   const prices=new Map((ratingsResult.data||[]).map(r=>[id(r.team_id),clean(r.stock_price)]));
+   const games:Row[]=[];
+   for(let offset=0;offset<9000;offset+=900){
+    const {data,error}=await db.from('games').select('id,game_date').eq('season',2027).eq('status','final').order('game_date',{ascending:true}).range(offset,offset+899);
+    if(error)throw error;
+    games.push(...((data||[]) as Row[]));
+    if(!data||data.length<900)break;
+   }
+   const gameDates=new Map(games.map(g=>[id(g.id),id(g.game_date).slice(0,10)]));
+   const eventMap=new Map<string,{date:string;before:number;after:number}[]>();
+   const allIds=games.map(g=>id(g.id)).filter(Boolean);
+   // Each game produces two records, well under Supabase's 1000-row
+   // API page default when querying 120 game IDs at a time.
+   for(let offset=0;offset<allIds.length;offset+=960){
+    const batches:Array<Promise<{data:Row[]|null;error:unknown}>>=[];
+    for(let i=offset;i<Math.min(offset+960,allIds.length);i+=120){
+     batches.push(db.from('elo_history')
+       .select('team_id,game_id,rating_before,rating_after')
+       .eq('formula_version','spats-elo-v3')
+       .in('game_id',allIds.slice(i,i+120)) as unknown as Promise<{data:Row[]|null;error:unknown}>);
+    }
+    const chunks=await Promise.all(batches);
+    for(const chunk of chunks){
+     if(chunk.error)throw chunk.error;
+     for(const row of chunk.data||[]){
+      const date=gameDates.get(id(row.game_id));
+      if(!date)continue;
+      const teamId=id(row.team_id);
+      const entries=eventMap.get(teamId)||[];
+      entries.push({date,before:clean(row.rating_before),after:clean(row.rating_after)});
+      eventMap.set(teamId,entries);
+     }
+    }
+   }
+   // ESPN's official school colors when available; deterministic team-specific
+   // fallback colors when the directory doesn't supply a match.
+   const colors=new Map<string,string>();
+   try{
+    const response=await fetch('https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams?group=50&limit=1000',{next:{revalidate:86400}});
+    if(response.ok){
+     const directory=await response.json();
+     for(const entry of (directory?.sports?.[0]?.leagues?.[0]?.teams||[]) as Array<{team?:{displayName?:string;shortDisplayName?:string;color?:string}}>) {
+      const team=entry.team;
+      const hex=id(team?.color).replace(/^#/,'');
+      if(!/^[0-9a-f]{6}$/i.test(hex))continue;
+      for(const label of [team?.displayName,team?.shortDisplayName]){
+       if(label)colors.set(expand(label),'#'+hex);
+      }
+     }
+    }
+   }catch(error){console.warn('SPATS official team colors unavailable',error);}
+   const fallbackColor=(value:string)=>{
+    let hash=0;for(const char of value)hash=(hash*31+char.charCodeAt(0))>>>0;
+    return `hsl(${hash%360} 69% 57%)`;
+   };
+   const teams=(teamsResult.data||[]).map(t=>{
+    const teamId=id(t.id);
+    const published=prices.get(teamId);
+    const events=(eventMap.get(teamId)||[]).sort((a,b)=>a.date.localeCompare(b.date));
+    const toPrice=(rating:number)=>100*Math.pow(2,(rating-1500)/300);
+    const rawClose=events.length?toPrice(events[events.length-1].after):null;
+    const factor=published!=null&&rawClose&&rawClose>0?published/rawClose:1;
+    const rounded=(value:number)=>Math.round(value*100)/100;
+    const opening=events.length?rounded(toPrice(events[0].before)*factor):(published??null);
+    const points=events.map(e=>({date:e.date,price:rounded(toPrice(e.after)*factor)}));
+    return {id:teamId,name:id(t.name),conference:id(t.conference),
+     color:colors.get(expand(id(t.name)))||fallbackColor(teamId),currentPrice:published??null,
+     openingPrice:opening,points};
+   }).filter(t=>t.currentPrice!==null);
+   return NextResponse.json({season:2027,teams,firstDate:games[0]?id(games[0].game_date).slice(0,10):null,
+    lastDate:games.length?id(games[games.length-1].game_date).slice(0,10):null,source:'SPATS V3 estimated current-season price history'},
+    {headers:{'Cache-Control':'public, s-maxage=600, stale-while-revalidate=1200'}});
+  }
   if(kind==='history'){
    if(!/^[a-zA-Z0-9_-]{1,100}$/.test(identifier))return fail('Invalid stock identifier.',400);
    const asset=req.nextUrl.searchParams.get('asset');
