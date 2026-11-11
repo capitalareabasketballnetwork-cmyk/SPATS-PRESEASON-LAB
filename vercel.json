@@ -3,6 +3,10 @@
     {
       "path": "/api/club/sync",
       "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/stocks/daily-update",
+      "schedule": "15 12 * * *"
     }
   ]
 }
