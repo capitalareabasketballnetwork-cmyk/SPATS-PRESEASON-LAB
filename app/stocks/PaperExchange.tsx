@@ -61,22 +61,37 @@ export function usePaperExchange(){
  return {account,hydrated,feedback,clearFeedback,trade,reset};
 }
 
-export function PaperOrder({stock,onTrade,notice}:{stock:PaperAsset;onTrade:(stock:PaperAsset,side:'buy'|'sell',quantity:number)=>string|null;notice:(message:string)=>void}){
+export function PaperOrder({stock,availableCash,onTrade,notice}:{stock:PaperAsset;availableCash:number;onTrade:(stock:PaperAsset,side:'buy'|'sell',quantity:number)=>string|null;notice:(message:string)=>void}){
  const [side,setSide]=useState<'buy'|'sell'>('buy');
  const [quantity,setQuantity]=useState('1');
  const count=Number(quantity);
  const amount=stock.price!==null&&Number.isFinite(count)?round(stock.price*count):null;
  const blocked=stock.priceStatus==='preview'||stock.price===null;
- function submit(e:React.FormEvent){e.preventDefault();const response=onTrade(stock,side,count);notice(response||'Order executed using the latest displayed simulated market price.')}
+ const insufficientCash=side==='buy'&&amount!==null&&amount>availableCash+0.00001;
+ const maxShares=(()=>{
+  if(blocked||stock.price===null||stock.price<=0||availableCash<0.01)return 0;
+  let units=Math.min(1000000000,Math.floor((availableCash/stock.price)*10000+1e-8));
+  // Orders settle to cents: never autofill an order that rounds beyond cash.
+  while(units>0&&round(stock.price*(units/10000))>availableCash)units--;
+  return units/10000;
+ })();
+ function submit(e:React.FormEvent){
+  e.preventDefault();
+  if(insufficientCash){notice('Insufficient cash: this order costs '+usd(amount!)+' but you only have '+usd(availableCash)+'. Use Buy Max to fill an affordable amount.');return}
+  const response=onTrade(stock,side,count);
+  notice(response||'Order executed using the latest displayed simulated market price.');
+ }
  return <section className="stock-paper-order">
   <div className="stock-paper-order-header"><div><span className="stock-overline">PAPER EXCHANGE</span><h3>Trade {stock.name}</h3></div><small>Simulated funds only</small></div>
   <form onSubmit={submit}>
    <div className="stock-paper-choice"><button type="button" className={side==='buy'?'active buy':''} onClick={()=>setSide('buy')}>Buy</button><button type="button" className={side==='sell'?'active sell':''} onClick={()=>setSide('sell')}>Sell</button></div>
    <label htmlFor="stock-paper-quantity">Shares (fractional supported)</label>
-   <input id="stock-paper-quantity" type="number" min="0.0001" max="100000" step="0.0001" value={quantity} onChange={e=>setQuantity(e.target.value)}/>
+   <div className="stock-paper-quantity-row"><input id="stock-paper-quantity" type="number" min="0.0001" max="100000" step="0.0001" value={quantity} onChange={e=>setQuantity(e.target.value)}/>{side==='buy'&&<button className="stock-paper-buy-max" type="button" disabled={blocked||maxShares<=0} onClick={()=>setQuantity(maxShares.toFixed(4))}>Buy Max</button>}</div>
+   {side==='buy'&&<div className="stock-paper-balance">Available cash: <strong>{usd(availableCash)}</strong>{maxShares>0&&<small>Maximum affordable: {maxShares.toFixed(4)} shares</small>}</div>}
+   {insufficientCash&&<p className="stock-paper-insufficient" role="alert">Insufficient cash. Your order is {usd(amount!)} but you have {usd(availableCash)} available. Reduce shares or use Buy Max.</p>}
    <div className="stock-paper-order-summary"><span>Market reference: {stock.price===null?'—':usd(stock.price)}</span><strong>Order: {amount===null?'—':usd(amount)}</strong></div>
    {blocked&&<p className="stock-muted">{stock.priceStatus==='preview'?'Player preview prices are research only until V5 publishes verified prices.':'This stock has no verified price.'}</p>}
-   <button className="stock-paper-submit" type="submit" disabled={blocked||!Number.isFinite(count)||count<=0}>{side==='buy'?'Buy simulated shares':'Sell simulated shares'}</button>
+   <button className="stock-paper-submit" type="submit" disabled={blocked||insufficientCash||!Number.isFinite(count)||count<=0}>{side==='buy'?'Buy simulated shares':'Sell simulated shares'}</button>
   </form>
  </section>;
 }
