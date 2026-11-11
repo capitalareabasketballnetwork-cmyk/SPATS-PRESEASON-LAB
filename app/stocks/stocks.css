@@ -110,3 +110,14 @@
 .stock-paper-trades small{color:#9db5cf;grid-column:2}
 .stock-paper-bottom{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-top:20px;font-size:11px;color:#a6bad2}
 @media(max-width:760px){.stock-paper-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.stock-paper-split{grid-template-columns:1fr}.stock-paper-bottom{flex-wrap:wrap}}
+
+/* Order affordability and one-click Buy Max. */
+.stock-paper-quantity-row{display:flex;align-items:stretch;gap:9px}
+.stock-paper-quantity-row input{flex:1;min-width:0}
+.stock-paper-buy-max{background:#283f60;color:#f8d88c;border:1px solid #9e8152;border-radius:9px;padding:10px 15px;white-space:nowrap;font-size:12px;font-weight:850;cursor:pointer}
+.stock-paper-buy-max:hover:not(:disabled){background:#345477}
+.stock-paper-buy-max:disabled{opacity:.45;cursor:not-allowed}
+.stock-paper-balance{display:flex;align-items:center;flex-wrap:wrap;gap:6px;color:#b0c8e1;font-size:12px}
+.stock-paper-balance strong{color:#f4f8ff}
+.stock-paper-balance small{margin-left:auto;color:#91abc8}
+.stock-paper-insufficient{border:1px solid #e18d95;background:#542b38;color:#ffccd0;border-radius:9px;padding:11px 13px;margin:0;font-size:12px;font-weight:700;line-height:1.5}
