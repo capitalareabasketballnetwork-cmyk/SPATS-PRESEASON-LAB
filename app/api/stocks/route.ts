@@ -94,6 +94,8 @@ export async function GET(req:NextRequest){
    return NextResponse.json({photoUrl},{headers:{'Cache-Control':'public, max-age=3600'}});
   }
   if(kind==='market-lines'){
+   const requestedSeason=Number(req.nextUrl.searchParams.get('season')||2027);
+   if(requestedSeason!==2026&&requestedSeason!==2027)return fail('Unsupported market graph season.',400);
    // Build one current-season price path for every team from *V3-only*
    // historical Elo events. Historical points are indicative and anchored to
    // published current_ratings, which remains the price source of truth.
@@ -106,7 +108,7 @@ export async function GET(req:NextRequest){
    const prices=new Map((ratingsResult.data||[]).map(r=>[id(r.team_id),clean(r.stock_price)]));
    const games:Row[]=[];
    for(let offset=0;offset<9000;offset+=900){
-    const {data,error}=await db.from('games').select('id,game_date').eq('season',2027).eq('status','final').order('game_date',{ascending:true}).range(offset,offset+899);
+    const {data,error}=await db.from('games').select('id,game_date') .eq('season',requestedSeason).eq('status','final').order('game_date',{ascending:true}).range(offset,offset+899);
     if(error)throw error;
     games.push(...((data||[]) as Row[]));
     if(!data||data.length<900)break;
@@ -164,16 +166,16 @@ export async function GET(req:NextRequest){
     const events=(eventMap.get(teamId)||[]).sort((a,b)=>a.date.localeCompare(b.date));
     const toPrice=(rating:number)=>100*Math.pow(2,(rating-1500)/300);
     const rawClose=events.length?toPrice(events[events.length-1].after):null;
-    const factor=published!=null&&rawClose&&rawClose>0?published/rawClose:1;
+    const factor=requestedSeason===2027&&published!=null&&rawClose&&rawClose>0?published/rawClose:1;
     const rounded=(value:number)=>Math.round(value*100)/100;
-    const opening=events.length?rounded(toPrice(events[0].before)*factor):(published??null);
+    const opening=events.length?rounded(toPrice(events[0].before)*factor):(requestedSeason===2027?published??null:null);
     const points=events.map(e=>({date:e.date,price:rounded(toPrice(e.after)*factor)}));
     return {id:teamId,name:id(t.name),conference:id(t.conference),
-     color:colors.get(expand(id(t.name)))||fallbackColor(teamId),currentPrice:published??null,
+     color:colors.get(expand(id(t.name)))||fallbackColor(teamId),currentPrice:points.length?points[points.length-1].price:published??null,
      openingPrice:opening,points};
-   }).filter(t=>t.currentPrice!==null);
-   return NextResponse.json({season:2027,teams,firstDate:games[0]?id(games[0].game_date).slice(0,10):null,
-    lastDate:games.length?id(games[games.length-1].game_date).slice(0,10):null,source:'SPATS V3 estimated current-season price history'},
+   }).filter(t=>t.openingPrice!==null&&t.points.length>0);
+   return NextResponse.json({season:requestedSeason,teams,firstDate:games[0]?id(games[0].game_date).slice(0,10):null,
+    lastDate:games.length?id(games[games.length-1].game_date).slice(0,10):null,source:'SPATS V3 season game-by-game price history'},
     {headers:{'Cache-Control':'public, s-maxage=600, stale-while-revalidate=1200'}});
   }
   if(kind==='history'){
