@@ -21,12 +21,13 @@ export async function GET(req:NextRequest){
  const url=(process.env.SPATS_MARKET_SUPABASE_URL||process.env.NEXT_PUBLIC_SUPABASE_URL||'').replace(/\/$/,'');
  const key=process.env.SPATS_MARKET_SERVICE_ROLE_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY;
  if(!url||!key)return reply({error:'Supabase market credentials not configured'},503);
+ const serviceKey:string=key;
  const startedAt=new Date().toISOString();
  const results:Stage[]=[];
  async function invoke(step:string,fn:string,payload:unknown){
   const response=await fetch(`${url}/functions/v1/${fn}`,{
    method:'POST',
-   headers:{Authorization:`Bearer ${key}`,apikey:key,'Content-Type':'application/json'},
+   headers:{Authorization:`Bearer ${serviceKey}`,apikey:serviceKey,'Content-Type':'application/json'},
    body:JSON.stringify(payload),
    cache:'no-store',
    signal:AbortSignal.timeout(90000)
