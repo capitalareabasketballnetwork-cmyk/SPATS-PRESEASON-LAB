@@ -82,3 +82,6 @@
 .stock-market-seasons button{border:0;border-radius:7px;background:transparent;color:#a7bed9;white-space:nowrap;font-size:12px;padding:8px 11px;cursor:pointer}
 .stock-market-seasons button.active{background:#e8c274;color:#111b2b;font-weight:800}
 @media(max-width:620px){.stock-market-controls{width:100%}.stock-market-seasons{width:100%}.stock-market-seasons button{flex:1}}
+
+/* Clearly label unapproved player price estimates. */
+.stock-preview-tag{display:block;margin-top:5px;color:#e9c676;font-size:10px;font-weight:800;letter-spacing:.25px;white-space:normal}
