@@ -153,3 +153,25 @@
 
 .stock-paper-board-back{color:#f2cb7d;text-decoration:none;border:1px solid #516985;border-radius:10px;padding:12px 15px;font-size:13px;font-weight:750;white-space:nowrap}
 .stock-paper-board-back:hover{background:#233b58}
+
+/* Public trader profile and authentic portfolio-history popup. */
+.stock-board-medal{cursor:pointer;color:inherit;font:inherit}
+.stock-board-medal:hover,.stock-paper-leaderboard .stock-table tr[role=button]:hover{outline:2px solid #dfbe78;outline-offset:1px;background-color:#263e59}
+.stock-board-medal:focus-visible,.stock-paper-leaderboard .stock-table tr[role=button]:focus-visible{outline:3px solid #dfbe78;outline-offset:2px}
+.stock-paper-leaderboard .stock-table tr[role=button]{cursor:pointer}
+.stock-trader-backdrop{position:fixed;inset:0;z-index:120;background:#030917e8;display:flex;align-items:center;justify-content:center;padding:16px}
+.stock-trader-modal{width:min(1000px,100%);max-height:93dvh;overflow-y:auto;background:#111e32;border:1px solid #546985;border-radius:19px;padding:25px;box-shadow:0 24px 80px #000b}
+.stock-trader-modal-header{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.stock-trader-modal-header h2{font-size:29px;margin:7px 0}.stock-trader-modal-header p{margin:4px 0 15px}
+.stock-trader-modal-header button{flex-shrink:0;border:1px solid #526a87;background:#273b55;border-radius:8px;color:white;padding:9px 13px;cursor:pointer}
+.stock-trader-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:15px 0 22px}
+.stock-trader-metrics>div{border:1px solid #38516e;background:#1a2d46;padding:15px;border-radius:11px;display:flex;flex-direction:column;gap:9px;min-width:0}
+.stock-trader-metrics small{color:#9ab1cd;font-size:11px}.stock-trader-metrics strong{font-size:clamp(15px,2vw,24px);overflow-wrap:anywhere}
+.stock-trader-section{margin:15px 0 23px}.stock-trader-section-head{display:flex;align-items:baseline;justify-content:space-between;gap:15px}
+.stock-trader-section-head h3{font-size:19px;margin:5px 0 12px}.stock-trader-section-head span{font-size:11px;color:#9aacc6}
+.stock-trader-graph{background:#0d1b2c;border:1px solid #304766;border-radius:11px;padding:12px}
+.stock-trader-graph svg{width:100%;height:auto;display:block}
+.stock-trader-graph-meta{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;color:#9eb4d0;font-size:11px}
+.stock-trader-chart-empty{padding:55px 20px;border:1px dashed #58708b;border-radius:10px;color:#a5b9d4;text-align:center;font-size:13px}
+.stock-trader-footnote{font-size:11px;color:#849cb8;margin:15px 0 0}
+@media(max-width:650px){.stock-trader-modal{padding:14px}.stock-trader-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.stock-trader-modal-header h2{font-size:23px}}
