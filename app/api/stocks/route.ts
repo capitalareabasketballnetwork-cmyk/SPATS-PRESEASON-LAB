@@ -104,7 +104,7 @@ export async function GET(req:NextRequest){
     if(publishedError)throw publishedError;
     const publishedPrice=published?.stock_price==null?null:clean(published.stock_price);
     const publishedUpdatedAt=published?.updated_at||null;
-    const {data:hist,error}=await db.from('elo_history').select('game_id,rating_before,rating_after').eq('team_id',identifier).limit(1000);
+    const {data:hist,error}=await db.from('elo_history').select('game_id,rating_before,rating_after').eq('team_id',identifier).eq('formula_version','spats-elo-v3').limit(1000);
     if(error)throw error;
     // Multiple recomputations can leave more than one history row per game.
     // Plot one canonical game point rather than multiple price paths at the same date.
