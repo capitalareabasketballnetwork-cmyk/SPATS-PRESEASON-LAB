@@ -2,6 +2,7 @@
 import {useEffect,useMemo,useState} from 'react';
 import {db} from '../../lib/supabase';
 import {usd} from './PaperExchange';
+import TraderDetail from './TraderDetail';
 
 type RankRow={user_id:string;username:string;portfolio_value:number;cash:number;holdings_value:number;total_profit_loss:number;holdings_count:number};
 
@@ -15,6 +16,7 @@ export default function PaperLeaderboard({currentUsername,cloudEnabled}:{current
  const [saving,setSaving]=useState(false);
  const [notice,setNotice]=useState('');
  const [refresh,setRefresh]=useState(0);
+ const [selectedTrader,setSelectedTrader]=useState<string|null>(null);
  useEffect(()=>setUsername(currentUsername),[currentUsername]);
  useEffect(()=>{
   let live=true;
@@ -52,14 +54,15 @@ export default function PaperLeaderboard({currentUsername,cloudEnabled}:{current
   {error&&<div className="stock-price-history-notice">{error}<p>No placeholder accounts or balances are shown.</p></div>}
   {loading?<p className="stock-muted">Loading portfolio standings…</p>:!error&&<>
    <div className="stock-board-podium">
-    {ranked.slice(0,3).map((r,i)=><div className={'stock-board-medal medal-'+(i+1)} key={r.user_id}><span className="stock-board-rank">{['🥇','🥈','🥉'][i]}</span><strong>@{r.username}</strong><b>{usd(r.portfolio_value)}</b><small className={r.total_profit_loss>=0?'stock-up':'stock-down'}>{r.total_profit_loss>=0?'+':''}{usd(r.total_profit_loss)} overall</small></div>)}
+    {ranked.slice(0,3).map((r,i)=><button type="button" className={'stock-board-medal medal-'+(i+1)} key={r.user_id} onClick={()=>setSelectedTrader(r.user_id)} aria-label={'View '+r.username+' portfolio'}><span className="stock-board-rank">{['🥇','🥈','🥉'][i]}</span><strong>@{r.username}</strong><b>{usd(r.portfolio_value)}</b><small className={r.total_profit_loss>=0?'stock-up':'stock-down'}>{r.total_profit_loss>=0?'+':''}{usd(r.total_profit_loss)} overall</small></button>)}
    </div>
    <div className="stock-board-toolbar"><div><strong>{ranked.length.toLocaleString()} traders</strong><small>Prices update with the SPATS team and published player models.</small></div><input aria-label="Search leaderboard usernames" placeholder="Search usernames…" value={search} onChange={e=>setSearch(e.target.value)}/></div>
    <div className="stock-table-scroll"><table className="stock-table"><thead><tr><th>Rank</th><th>Username</th><th>Portfolio value</th><th>Available cash</th><th>Stock holdings</th><th>Total P/L</th></tr></thead><tbody>
-    {displayed.map(r=><tr key={r.user_id}><td><strong>#{rankByUser.get(r.user_id)}</strong></td><td><strong>@{r.username}</strong></td><td className="stock-price-cell">{usd(r.portfolio_value)}</td><td>{usd(r.cash)}</td><td>{usd(r.holdings_value)} <small className="stock-muted">({r.holdings_count})</small></td><td className={r.total_profit_loss>=0?'stock-up':'stock-down'}>{r.total_profit_loss>=0?'+':''}{usd(r.total_profit_loss)}</td></tr>)}
+    {displayed.map(r=><tr key={r.user_id} tabIndex={0} role="button" aria-label={'View '+r.username+' portfolio'} onClick={()=>setSelectedTrader(r.user_id)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setSelectedTrader(r.user_id)}}}><td><strong>#{rankByUser.get(r.user_id)}</strong></td><td><strong>@{r.username}</strong></td><td className="stock-price-cell">{usd(r.portfolio_value)}</td><td>{usd(r.cash)}</td><td>{usd(r.holdings_value)} <small className="stock-muted">({r.holdings_count})</small></td><td className={r.total_profit_loss>=0?'stock-up':'stock-down'}>{r.total_profit_loss>=0?'+':''}{usd(r.total_profit_loss)}</td></tr>)}
    </tbody></table></div>
    {!displayed.length&&<p className="stock-muted">No usernames match the search.</p>}
   </>}
+  {selectedTrader&&<TraderDetail userId={selectedTrader} onClose={()=>setSelectedTrader(null)}/>}
   <p className="stock-disclaimer">Simulation only. Portfolio value is marked to the latest published model price; browser-only paper portfolios are not included. No cash-out or real-money transactions.</p>
  </section>;
 }
