@@ -54,15 +54,22 @@ export async function GET(req:NextRequest){
   await invoke('player box scores','import-cbb-players',{
    startDate:dateOffset(-2),endDate:dateOffset(0),commit:true
   });
-  const db=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}}).schema('spats_market');
+  // The existing V1-V3 calculations and import RPCs reside in public.
+  // V5 is optional until its database function is installed; don't mark
+  // successfully imported team games as a failure solely because V5 is absent.
+  const db=createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false}});
   const {data,error}=await db.rpc('calculate_player_v5');
   if(error){
-   results.push({step:'V5 player prices',ok:false,status:500,detail:`${error.code||''} ${error.message}`.slice(0,800)});
-   throw new Error('V5 player prices failed: '+error.message);
+   const missing=error.code==='PGRST202'||error.code==='42883'||/could not find the function|does not exist/i.test(error.message);
+   results.push({step:'V5 player prices',ok:false,status:missing?404:500,detail:`${error.code||''} ${error.message}`.slice(0,800)});
+   if(!missing)throw new Error('V5 player prices failed: '+error.message);
+   console.warn('SPATS daily market update: V5 unavailable; team imports completed.');
+  }else{
+   results.push({step:'V5 player prices',ok:true,status:200,detail:JSON.stringify(data).slice(0,800)});
   }
-  results.push({step:'V5 player prices',ok:true,status:200,detail:JSON.stringify(data).slice(0,800)});
-  console.info('SPATS daily market update: completed',JSON.stringify({startedAt,results}));
-  return reply({ok:true,startedAt,finishedAt:new Date().toISOString(),results});
+  const complete=results.every(stage=>stage.ok);
+  console.info('SPATS daily market update: completed',JSON.stringify({startedAt,complete,results}));
+  return reply({ok:complete,partial:!complete,startedAt,finishedAt:new Date().toISOString(),results});
  }catch(error){
   console.error('SPATS daily market update failed',JSON.stringify({startedAt,results,error:error instanceof Error?error.message:String(error)}));
   return reply({ok:false,startedAt,finishedAt:new Date().toISOString(),results,error:error instanceof Error?error.message:'Unknown update error'},500);
