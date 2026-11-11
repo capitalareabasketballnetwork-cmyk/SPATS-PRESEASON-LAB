@@ -21,6 +21,12 @@ async function fetchAllRows(db:ReturnType<ReturnType<typeof createClient>['schem
 }
 
 
+
+// Preview is deliberately separate from published V5: it uses stored season
+// averages and never invents per-game player price history.
+const previewQuality=(row:Row)=>0.75*clean(row.points_per_game)+1.2*clean(row.rebounds_per_game)+1.5*clean(row.assists_per_game);
+const roundMoney=(v:number)=>Math.round(v*100)/100;
+
 type EspnTeam={id:string;displayName:string;name:string;location:string;shortDisplayName:string;logos?:{href?:string}[]};
 const norm=(v:string)=>v.toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/&/g,'and').replace(/[^a-z0-9]+/g,' ').trim().replace(/\s+/g,' ');
 const expand=(v:string)=>norm(v).replace(/^st /,'saint ').replace(/^unc /,'north carolina ').replace(/^uc /,'california ').replace(/^uconn /,'connecticut ').replace(/^umass /,'massachusetts ').replace(/^miami oh /,'miami ohio ').replace(/^miami fl /,'miami florida ');
@@ -286,10 +292,11 @@ export async function GET(req:NextRequest){
    return fail('Invalid stock type.',400);
   }
   if(kind!=='overview')return fail('Unknown request.',400);
-  const [teamsResult,ratingsResult,playerSeasons,playerRatings]=await Promise.all([
+  const [teamsResult,ratingsResult,playerSeasons,priorPlayerSeasons,playerRatings]=await Promise.all([
    db.from('teams').select('id,name,conference').eq('is_active',true).limit(500),
    db.from('current_ratings').select('team_id,stock_price,games_processed,updated_at').limit(500),
    fetchAllRows(db,'player_seasons','player_id,team_id,season,points_per_game,rebounds_per_game,assists_per_game',2027),
+   fetchAllRows(db,'player_seasons','player_id,team_id,season,points_per_game,rebounds_per_game,assists_per_game',2026),
    fetchAllRows(db,'player_ratings','player_id,season,formula_version,stock_price,opening_price,games_processed,updated_at',2027)
   ]);
   if(teamsResult.error)throw teamsResult.error;
@@ -317,10 +324,40 @@ export async function GET(req:NextRequest){
     if(error){playerWarning=error.message;break}
     for(const p of data||[])playerById.set(id(p.id),p);
    }
+   // Rank previous-season players to provide a transparent preview until
+   // official V5 calculations are installed in Supabase. It is NOT V5.
+   const priorWithStats=priorPlayerSeasons
+     .filter((s:Row)=>s.points_per_game!=null)
+     .map((s:Row)=>({id:id(s.player_id),quality:previewQuality(s)}))
+     .sort((a,b)=>a.quality-b.quality||a.id.localeCompare(b.id));
+   const priorRank=new Map(priorWithStats.map((p,index)=>[p.id,{quality:p.quality,pct:priorWithStats.length<=1?0.5:index/(priorWithStats.length-1)}]));
+   const previewOpening=(rank:number)=>{
+    if(rank<.25)return 50+25*rank/.25;
+    if(rank<.5)return 75+25*(rank-.25)/.25;
+    if(rank<.75)return 100+50*(rank-.5)/.25;
+    if(rank<.9)return 150+50*(rank-.75)/.15;
+    return 200+100*(rank-.9)/.1;
+   };
    const priced=new Map(playerRatings.filter((p:Row)=>id(p.formula_version)==='V5').map((p:Row)=>[id(p.player_id),p]));
-   players=seasons.map((s:Row)=>{const p=playerById.get(id(s.player_id));const r=priced.get(id(s.player_id));return {id:id(s.player_id),name:id(p?.full_name)||'Unknown player',position:id(p?.position),teamId:id(s.team_id),price:r?clean(r.stock_price):null,openingPrice:r?clean(r.opening_price):null,ppg:s.points_per_game==null?null:clean(s.points_per_game),rpg:s.rebounds_per_game==null?null:clean(s.rebounds_per_game),apg:s.assists_per_game==null?null:clean(s.assists_per_game),games:r?clean(r.games_processed):null};}).sort((a,b)=>Number(b.price??-1)-Number(a.price??-1));
+   players=seasons.map((s:Row)=>{
+    const playerId=id(s.player_id),p=playerById.get(playerId),r=priced.get(playerId),prior=priorRank.get(playerId);
+    const opening=roundMoney(prior?previewOpening(prior.pct):100);
+    const currentQuality=previewQuality(s);
+    // Bounded single snapshot adjustment, not a fabricated game-by-game replay.
+    const preview=roundMoney(opening*(1+Math.max(-.15,Math.min(.15,
+      (currentQuality-(prior?.quality??8))*0.012))));
+    const hasCurrentStats=s.points_per_game!=null;
+    return {id:playerId,name:id(p?.full_name)||'Unknown player',position:id(p?.position),teamId:id(s.team_id),
+      price:r?clean(r.stock_price):hasCurrentStats?preview:null,
+      openingPrice:r?clean(r.opening_price):hasCurrentStats?opening:null,
+      priceStatus:r?'published':'preview',
+      ppg:s.points_per_game==null?null:clean(s.points_per_game),
+      rpg:s.rebounds_per_game==null?null:clean(s.rebounds_per_game),
+      apg:s.assists_per_game==null?null:clean(s.assists_per_game),
+      games:r?clean(r.games_processed):null};
+   }).sort((a,b)=>Number(b.price??-1)-Number(a.price??-1));
   }
-  return NextResponse.json({teams,players,coverage,playerWarning,asOf:new Date().toISOString(),playerPricesPublished:players.some(p=>typeof p.price==='number')},{headers:{'Cache-Control':'no-store'}});
+  return NextResponse.json({teams,players,coverage,playerWarning,asOf:new Date().toISOString(),playerPricesPublished:players.some(p=>p.priceStatus==='published'),playerPreviewCount:players.filter(p=>p.priceStatus==='preview'&&typeof p.price==='number').length},{headers:{'Cache-Control':'no-store'}});
  }catch(e){
   const err=dbError(e);
   console.error('SPATS market snapshot error:',JSON.stringify(err));
