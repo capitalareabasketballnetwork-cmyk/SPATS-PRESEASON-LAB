@@ -67,6 +67,17 @@ export async function GET(req:NextRequest){
   }else{
    results.push({step:'V5 player prices',ok:true,status:200,detail:JSON.stringify(data).slice(0,800)});
   }
+  // Track actual mark-to-market paper portfolio values once per daily update.
+  // The optional leaderboard migration is independent of team/player imports.
+  const {data:snapshotCount,error:snapshotError}=await db.rpc('spats_paper_snapshot_daily');
+  if(snapshotError){
+   const missing=snapshotError.code==='PGRST202'||snapshotError.code==='42883'||/could not find the function|does not exist/i.test(snapshotError.message);
+   results.push({step:'paper portfolio daily snapshots',ok:missing,status:missing?404:500,
+    detail:missing?'Portfolio snapshot migration not installed yet.':snapshotError.message.slice(0,800)});
+   if(!missing)console.warn('SPATS paper portfolio snapshot failed:',snapshotError.message);
+  }else{
+   results.push({step:'paper portfolio daily snapshots',ok:true,status:200,detail:String(snapshotCount)+' traders snapshotted'});
+  }
   const complete=results.every(stage=>stage.ok);
   console.info('SPATS daily market update: completed',JSON.stringify({startedAt,complete,results}));
   return reply({ok:complete,partial:!complete,startedAt,finishedAt:new Date().toISOString(),results});
