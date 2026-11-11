@@ -121,3 +121,32 @@
 .stock-paper-balance strong{color:#f4f8ff}
 .stock-paper-balance small{margin-left:auto;color:#91abc8}
 .stock-paper-insufficient{border:1px solid #e18d95;background:#542b38;color:#ffccd0;border-radius:9px;padding:11px 13px;margin:0;font-size:12px;font-weight:700;line-height:1.5}
+
+/* Multi-account simulated trading leaderboard */
+.stock-paper-board-heading{align-items:flex-start}
+.stock-paper-board-heading .stock-muted{margin:7px 0 0;max-width:650px}
+.stock-paper-board-heading>button{margin-top:5px}
+.stock-board-profile{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:17px 0;padding:15px;background:#1b304a;border:1px solid #445a74;border-radius:12px}
+.stock-board-profile>div{display:flex;flex-direction:column;gap:6px}
+.stock-board-profile strong{font-size:17px;color:#f5d089}
+.stock-board-profile button,.stock-board-name-form button{border:1px solid #637e9d;background:#253e5e;color:#f3f7ff;border-radius:9px;padding:10px 12px;cursor:pointer}
+.stock-board-name-form{display:flex;flex-direction:column;gap:8px;margin-bottom:17px}
+.stock-board-name-form label{font-size:12px;color:#b5c9e2}
+.stock-board-name-form>div{display:flex;gap:8px}
+.stock-board-name-form input{flex:1;min-width:0;border:1px solid #425b77;border-radius:9px;background:#0c1b2e;color:#fff;padding:10px}
+.stock-board-podium{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:24px 0}
+.stock-board-medal{padding:20px 12px;background:linear-gradient(150deg,#1b304a,#13223a);border:1px solid #485d78;border-radius:16px;display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0;text-align:center}
+.stock-board-medal.medal-1{border-color:#cda85f;background:linear-gradient(155deg,#40381f,#192840)}
+.stock-board-medal.medal-2{border-color:#9babc1}
+.stock-board-medal.medal-3{border-color:#ae8569}
+.stock-board-rank{font-size:29px}
+.stock-board-medal strong{font-size:14px;overflow-wrap:anywhere;color:#fff}
+.stock-board-medal b{font-size:clamp(16px,2vw,25px);color:#f3d48c}
+.stock-board-medal small{font-size:11px}
+.stock-board-toolbar{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap;margin:18px 0}
+.stock-board-toolbar>div{display:flex;gap:5px;flex-direction:column}
+.stock-board-toolbar strong{color:#fff}
+.stock-board-toolbar small{color:#98b4d3;font-size:11px}
+.stock-board-toolbar input{padding:11px;border:1px solid #435c79;background:#0e1e33;color:#fff;border-radius:10px}
+.stock-paper-leaderboard .stock-table td{padding:15px 12px}
+@media(max-width:630px){.stock-board-podium{grid-template-columns:1fr;gap:7px}.stock-board-medal{padding:12px}.stock-board-rank{font-size:23px}.stock-board-toolbar input{width:100%}}
