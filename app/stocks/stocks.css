@@ -75,3 +75,10 @@
 .stock-market-selected span:last-child{color:#efc779;white-space:nowrap}
 .stock-market-graph-footer{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:10px;font-size:11px;color:#8da5c1;line-height:1.5}
 @media(max-width:620px){.stock-market-search-wrap{width:100%}.stock-market-svg{min-height:210px}.stock-market-tooltip{padding:7px;font-size:11px;max-width:180px}.stock-market-selected{top:7px;right:7px;padding:7px;font-size:10px}.stock-market-selected span:last-child{display:none}}
+
+/* Current vs previous season chart controls. */
+.stock-market-controls{display:flex;align-items:center;flex-wrap:wrap;gap:10px}
+.stock-market-seasons{display:inline-flex;gap:3px;border:1px solid #415774;background:#0d1c30;padding:4px;border-radius:10px}
+.stock-market-seasons button{border:0;border-radius:7px;background:transparent;color:#a7bed9;white-space:nowrap;font-size:12px;padding:8px 11px;cursor:pointer}
+.stock-market-seasons button.active{background:#e8c274;color:#111b2b;font-weight:800}
+@media(max-width:620px){.stock-market-controls{width:100%}.stock-market-seasons{width:100%}.stock-market-seasons button{flex:1}}
