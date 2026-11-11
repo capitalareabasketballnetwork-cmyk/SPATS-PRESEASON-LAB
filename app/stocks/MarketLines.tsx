@@ -76,7 +76,7 @@ export default function MarketLines({onOpen}:{onOpen:(id:string)=>void}){
  if(error||!model)return <section className="stock-panel stock-market-graph"><h2>All-team stock movement</h2><p className="stock-muted">{error||'No market movements available yet.'}</p></section>;
  const hoverTeam=model.mapped.find(t=>t.id===active?.id);
  return <section className="stock-panel stock-market-graph">
-  <div className="stock-panel-heading stock-market-graph-heading"><div><span className="stock-overline">MARKET MOVEMENT · {payload?.season-1}–{String(payload?.season).slice(-2)}</span><h2>Every team. One market.</h2><p className="stock-muted">Explore all {model.mapped.length} team stock lines. Hover to reveal a school and its price; click its line to open the stock details.</p></div>
+  <div className="stock-panel-heading stock-market-graph-heading"><div><span className="stock-overline">MARKET MOVEMENT · {(payload?.season??2027)-1}–{String(payload?.season??2027).slice(-2)}</span><h2>Every team. One market.</h2><p className="stock-muted">Explore all {model.mapped.length} team stock lines. Hover to reveal a school and its price; click its line to open the stock details.</p></div>
    <div className="stock-market-search-wrap"><input aria-label="Find team on market chart" value={search} placeholder="Find a team's line…" onChange={e=>{setSearch(e.target.value);setFocused(null);setActive(null)}}/>
    {search&&<div className="stock-market-suggestions">{samples.map(t=><button key={t.id} onClick={()=>{setFocused(t.id);setSearch(t.name);setActive(null)}}><span className="stock-team-swatch" style={{background:t.color}}/>{t.name}<small>{money(t.currentPrice)}</small></button>)}</div>}</div>
   </div>
