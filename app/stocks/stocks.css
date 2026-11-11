@@ -150,3 +150,6 @@
 .stock-board-toolbar input{padding:11px;border:1px solid #435c79;background:#0e1e33;color:#fff;border-radius:10px}
 .stock-paper-leaderboard .stock-table td{padding:15px 12px}
 @media(max-width:630px){.stock-board-podium{grid-template-columns:1fr;gap:7px}.stock-board-medal{padding:12px}.stock-board-rank{font-size:23px}.stock-board-toolbar input{width:100%}}
+
+.stock-paper-board-back{color:#f2cb7d;text-decoration:none;border:1px solid #516985;border-radius:10px;padding:12px 15px;font-size:13px;font-weight:750;white-space:nowrap}
+.stock-paper-board-back:hover{background:#233b58}
