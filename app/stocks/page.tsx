@@ -98,11 +98,12 @@ function PriceChart({history,publishedPrice,historyStatus}:{history:History[];pu
  const fullIndex=selected?current.findIndex(h=>h.gameId===selected.gameId):-1;
  const precedingFull=fullIndex>0?current[fullIndex-1]:null;
  const preceding=previous??precedingFull;
- const seasonChange=!!selected&&!!preceding&&selected.season!=null&&preceding.season!=null&&selected.season!==preceding.season;
- const before=preceding?.value??selected?.priceBefore??null;
- const diff=selected&&before!==null?selected.value-before:null;
- const gameOnlyChange=selected&&selected.priceBefore!=null?selected.value-selected.priceBefore:null;
- const offseasonReset=seasonChange&&selected?.priceBefore!=null&&preceding?selected.priceBefore-preceding.value:null;
+ // A new season begins at its own opening valuation. Do not compare it
+ // with the last close from a previous season, which makes opening wins
+ // look like a massive price loss from offseason regression.
+ const seasonOpener=!!selected&&(!precedingFull||selected.season!==precedingFull.season);
+ const before=seasonOpener?null:(preceding?.value??selected?.priceBefore??null);
+ const diff=selected&&!seasonOpener&&before!==null?selected.value-before:null;
  const chosenX=active!==null?x(active):0,chosenY=selected?y(selected.value):0;
  const closeFullscreen=()=>{setFullScreen(false);setDragging(false)};
  const onMove=(event:React.PointerEvent<SVGSVGElement>)=>{
@@ -134,10 +135,9 @@ function PriceChart({history,publishedPrice,historyStatus}:{history:History[];pu
    <text x="638" y="258" fill="#9aaec6" textAnchor="end" fontSize="11">{games[games.length-1].date.slice(0,10)}</text>
    </svg>
    {selected&&<div className="stock-game-inspector" aria-live="polite">
-    <><div className="stock-game-header"><span>{selected.date.slice(0,10)}</span><b className={diff!==null&&diff>=0?'stock-up':'stock-down'}>{diff===null?'Price change unavailable':moneyDelta(diff)}</b></div>
+    <><div className="stock-game-header"><span>{selected.date.slice(0,10)}</span>{seasonOpener?<b className="stock-opening-price">Season opening price {cash(selected.value)}</b>:<b className={diff!==null&&diff>=0?'stock-up':'stock-down'}>{diff===null?'Price change unavailable':moneyDelta(diff)}</b>}</div>
      <div className="stock-game-line"><span>{selected.opponent?'vs '+selected.opponent:selected.event||'Game details unavailable'}</span><span>{selected.score||'Score unavailable'}</span>{selected.result&&<b className={selected.result==='W'?'stock-up':'stock-down'}>{selected.result}</b>}</div>
-     <div className="stock-game-prices"><span>Previous recorded close {cash(before)}</span><span>After {cash(selected.value)}</span></div>
-     {seasonChange&&<div className="stock-season-adjustment"><strong>New-season valuation adjustment</strong><p>SPATS adjusts team stock prices between seasons to account for roster turnover, including departing players and new arrivals. That reset can lower a team's price even after a win. The change above spans the offseason adjustment and this game, rather than reflecting the game result alone.</p>{offseasonReset!==null&&gameOnlyChange!==null&&<div className="stock-adjustment-details"><span>Offseason adjustment: <b className={offseasonReset>=0?'stock-up':'stock-down'}>{moneyDelta(offseasonReset)}</b></span><span>This game: <b className={gameOnlyChange>=0?'stock-up':'stock-down'}>{moneyDelta(gameOnlyChange)}</b></span></div>}</div>}
+     <div className="stock-game-prices">{seasonOpener?<><span>First recorded game of the {selected.season?String(selected.season-1)+'–'+String(selected.season).slice(-2):'new'} season</span><span>Opening close {cash(selected.value)}</span></>:<><span>Previous recorded close {cash(before)}</span><span>After {cash(selected.value)}</span></>}</div>
     </>
    </div>}</>:<div className="stock-empty-chart">{current.length?<>No recorded stock price changes for this {range==='1W'?'week':range==='1M'?'month':range==='CURRENT'?'current season':range==='LAST'?'previous season':'period'}.<br/>Most recent recorded game: {current[current.length-1]?.date.slice(0,10)}.<br/>Select ALL to see earlier prices.</>:'No verified price-history events are published for this stock yet.'}</div>}
  </div>;
